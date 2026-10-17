@@ -8,6 +8,8 @@ Native Kotlin + Jetpack Compose educational operations game. Entirely offline; n
 
 Content is still simplified in places — see [MISSIONS](docs/MISSIONS.md#known-simplifications) and [ROADMAP](docs/ROADMAP.md). The console uses a generic structured operation form; supported AWS CLI syntax is a documented subset. Executed results are in [VALIDATION](docs/VALIDATION.md).
 
+**通关秘籍**：[当前全部 12 关中文通关攻略（操作命令、IAM 策略、成功条件与排错）](docs/COMPLETE_WALKTHROUGH.md)。
+
 ## Build and install
 
 Requirements: JDK 17, Android SDK platform 35, accepted SDK licenses. Wrapper pins Gradle 8.9, AGP 8.7.3, Kotlin 1.9.24 and Compose compiler 1.5.14. The [official AGP compatibility table](https://developer.android.com/build/releases/about-agp) documents the Gradle pairing. Initial build downloads dependencies; the installed game operates offline.
