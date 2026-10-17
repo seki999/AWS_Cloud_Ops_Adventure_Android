@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-006",
+  "chapterId": "chapter-01",
+  "order": 6,
+  "playable": true,
+  "title": {
+    "zh": "最小权限决战",
+    "ja": "最小権限の決戦",
+    "en": "Least privilege"
+  },
+  "story": {
+    "zh": "2035 年，Commander Nova：Shadow Fault 正在破坏云城。最小权限决战，由你负责。",
+    "ja": "2035年、Nova：Shadow Fault が都市を攻撃中。任務：最小権限の決戦。",
+    "en": "2035. Commander Nova: Shadow Fault has attacked the city. Your mission: Least privilege."
+  },
+  "lesson": {
+    "zh": "仅允许 s3:GetObject 访问 arn:aws:s3:::rescue/*，删除必须被拒绝。",
+    "ja": "s3:GetObject を arn:aws:s3:::rescue/* にのみ許可し、削除は拒否します。",
+    "en": "Allow only s3:GetObject on arn:aws:s3:::rescue/*; deletion must be denied."
+  },
+  "services": [
+    "IAM"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "port": "443"
+      },
+      "policies": []
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "operator",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": []
+    }
+  ],
+  "faults": [
+    "fault-006"
+  ],
+  "objectives": [
+    {
+      "kind": "leastPrivilege",
+      "resource": "operator",
+      "action": "s3:GetObject",
+      "target": "arn:aws:s3:::rescue/*"
+    },
+    {
+      "kind": "allowed",
+      "resource": "operator",
+      "action": "s3:GetObject",
+      "target": "arn:aws:s3:::rescue/map"
+    },
+    {
+      "kind": "denied",
+      "resource": "operator",
+      "action": "s3:DeleteObject",
+      "target": "arn:aws:s3:::rescue/map"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：检查目标资源的状态与权限。",
+      "ja": "Mira：対象の状態と権限を確認。",
+      "en": "Mira: Inspect target state and permissions."
+    },
+    {
+      "zh": "仅允许 s3:GetObject 访问 arn:aws:s3:::rescue/*，删除必须被拒绝。",
+      "ja": "s3:GetObject を arn:aws:s3:::rescue/* にのみ許可し、削除は拒否します。",
+      "en": "Allow only s3:GetObject on arn:aws:s3:::rescue/*; deletion must be denied."
+    },
+    {
+      "zh": "Mira：在操作面板选择目标和命令，参考学习总结中的原理。",
+      "ja": "Mira：操作パネルで対象とコマンドを選択。",
+      "en": "Mira: Select the target and command in the action panel."
+    }
+  ],
+  "reference": [
+    {
+      "op": "policy",
+      "id": "operator",
+      "args": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "s3:GetObject"
+          ],
+          "resources": [
+            "arn:aws:s3:::rescue/*"
+          ]
+        }
+      ]
+    }
+  ],
+  "xp": 150,
+  "coins": 50
+}

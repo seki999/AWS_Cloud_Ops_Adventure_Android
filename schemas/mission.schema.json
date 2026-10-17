@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "chapterId",
+    "order",
+    "playable",
+    "title",
+    "story",
+    "lesson",
+    "services",
+    "initialResources",
+    "faults",
+    "objectives",
+    "constraints",
+    "allowedActions",
+    "hints",
+    "reference",
+    "xp",
+    "coins"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^aws-[0-9]{3}$"
+    },
+    "chapterId": {
+      "type": "string",
+      "pattern": "^chapter-[0-9]{2}$"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60
+    },
+    "playable": {
+      "type": "boolean"
+    },
+    "title": {
+      "$ref": "#/$defs/text"
+    },
+    "story": {
+      "$ref": "#/$defs/text"
+    },
+    "lesson": {
+      "$ref": "#/$defs/text"
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "faults": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowedActions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "initialResources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "objectives": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/objective"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/objective"
+      }
+    },
+    "hints": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    },
+    "reference": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/command"
+      }
+    },
+    "xp": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "coins": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zh",
+        "ja",
+        "en"
+      ],
+      "properties": {
+        "zh": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ja": {
+          "type": "string",
+          "minLength": 1
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect",
+        "actions",
+        "resources"
+      ],
+      "properties": {
+        "effect": {
+          "enum": [
+            "Allow",
+            "Deny"
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "region",
+        "attrs",
+        "policies"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/policy"
+          }
+        }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "id",
+        "args",
+        "policies"
+      ],
+      "properties": {
+        "op": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/policy"
+          }
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "resource"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "exists",
+            "attribute",
+            "region",
+            "allowed",
+            "denied",
+            "leastPrivilege",
+            "diskFree",
+            "hourlyBudget",
+            "healthy",
+            "roleAccess"
+          ]
+        },
+        "resource": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

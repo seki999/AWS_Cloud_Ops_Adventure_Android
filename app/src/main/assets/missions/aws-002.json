@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-002",
+  "chapterId": "chapter-01",
+  "order": 2,
+  "playable": true,
+  "title": {
+    "zh": "创建云端工作人员",
+    "ja": "クラウド担当者の作成",
+    "en": "Cloud operator"
+  },
+  "story": {
+    "zh": "2035 年，Commander Nova：Shadow Fault 正在破坏云城。创建云端工作人员，由你负责。",
+    "ja": "2035年、Nova：Shadow Fault が都市を攻撃中。任務：クラウド担当者の作成。",
+    "en": "2035. Commander Nova: Shadow Fault has attacked the city. Your mission: Cloud operator."
+  },
+  "lesson": {
+    "zh": "默认拒绝。只有匹配操作与资源的 Allow 才授权。",
+    "ja": "既定は拒否です。操作とリソースに一致する Allow が必要です。",
+    "en": "Default deny applies. Allow must match both action and resource."
+  },
+  "services": [
+    "IAM"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "port": "443"
+      },
+      "policies": []
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "fault-002"
+  ],
+  "objectives": [
+    {
+      "kind": "exists",
+      "resource": "operator",
+      "value": "user"
+    },
+    {
+      "kind": "allowed",
+      "resource": "operator",
+      "action": "s3:GetObject",
+      "target": "arn:aws:s3:::rescue/map"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：检查目标资源的状态与权限。",
+      "ja": "Mira：対象の状態と権限を確認。",
+      "en": "Mira: Inspect target state and permissions."
+    },
+    {
+      "zh": "默认拒绝。只有匹配操作与资源的 Allow 才授权。",
+      "ja": "既定は拒否です。操作とリソースに一致する Allow が必要です。",
+      "en": "Default deny applies. Allow must match both action and resource."
+    },
+    {
+      "zh": "Mira：在操作面板选择目标和命令，参考学习总结中的原理。",
+      "ja": "Mira：操作パネルで対象とコマンドを選択。",
+      "en": "Mira: Select the target and command in the action panel."
+    }
+  ],
+  "reference": [
+    {
+      "op": "create",
+      "id": "operator",
+      "args": {
+        "type": "user"
+      },
+      "policies": []
+    },
+    {
+      "op": "policy",
+      "id": "operator",
+      "args": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "s3:GetObject"
+          ],
+          "resources": [
+            "arn:aws:s3:::rescue/*"
+          ]
+        }
+      ]
+    }
+  ],
+  "xp": 150,
+  "coins": 50
+}

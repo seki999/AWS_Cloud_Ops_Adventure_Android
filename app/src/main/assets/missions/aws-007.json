@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-007",
+  "chapterId": "chapter-02",
+  "order": 7,
+  "playable": true,
+  "title": {
+    "zh": "第一台 EC2",
+    "ja": "最初の EC2",
+    "en": "First EC2"
+  },
+  "story": {
+    "zh": "2035 年，Commander Nova：Shadow Fault 正在破坏云城。第一台 EC2，由你负责。",
+    "ja": "2035年、Nova：Shadow Fault が都市を攻撃中。任務：最初の EC2。",
+    "en": "2035. Commander Nova: Shadow Fault has attacked the city. Your mission: First EC2."
+  },
+  "lesson": {
+    "zh": "启动实例需要 AMI、规格、子网、安全组和 AZ。",
+    "ja": "起動には AMI、タイプ、サブネット、SG、AZ が必要です。",
+    "en": "Launching needs an AMI, type, subnet, security group, and AZ."
+  },
+  "services": [
+    "EC2",
+    "IAM",
+    "CloudWatch"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "port": "443"
+      },
+      "policies": []
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "fault-007"
+  ],
+  "objectives": [
+    {
+      "kind": "healthy",
+      "resource": "i-rescue"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：检查目标资源的状态与权限。",
+      "ja": "Mira：対象の状態と権限を確認。",
+      "en": "Mira: Inspect target state and permissions."
+    },
+    {
+      "zh": "启动实例需要 AMI、规格、子网、安全组和 AZ。",
+      "ja": "起動には AMI、タイプ、サブネット、SG、AZ が必要です。",
+      "en": "Launching needs an AMI, type, subnet, security group, and AZ."
+    },
+    {
+      "zh": "Mira：在操作面板选择目标和命令，参考学习总结中的原理。",
+      "ja": "Mira：操作パネルで対象とコマンドを選択。",
+      "en": "Mira: Select the target and command in the action panel."
+    }
+  ],
+  "reference": [
+    {
+      "op": "create",
+      "id": "i-rescue",
+      "args": {
+        "type": "instance",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "keyPair": "training-key"
+      },
+      "policies": []
+    }
+  ],
+  "xp": 150,
+  "coins": 50
+}

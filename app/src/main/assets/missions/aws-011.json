@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-011",
+  "chapterId": "chapter-02",
+  "order": 11,
+  "playable": true,
+  "title": {
+    "zh": "高成本服务器",
+    "ja": "高コストのサーバー",
+    "en": "Expensive server"
+  },
+  "story": {
+    "zh": "2035 年，Commander Nova：Shadow Fault 正在破坏云城。高成本服务器，由你负责。",
+    "ja": "2035年、Nova：Shadow Fault が都市を攻撃中。任務：高コストのサーバー。",
+    "en": "2035. Commander Nova: Shadow Fault has attacked the city. Your mission: Expensive server."
+  },
+  "lesson": {
+    "zh": "先停止实例再调整规格，再启动并确认健康。这里使用教学虚拟价格。",
+    "ja": "停止後にタイプ変更し、起動して正常性を確認します。価格は教育用です。",
+    "en": "Stop before resizing, then start and verify health. Prices are educational."
+  },
+  "services": [
+    "EC2",
+    "IAM",
+    "CloudWatch"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "port": "443"
+      },
+      "policies": []
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "m5.large",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "5",
+        "memory": "10"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "fault-011"
+  ],
+  "objectives": [
+    {
+      "kind": "hourlyBudget",
+      "resource": "i-web",
+      "value": "0.04"
+    },
+    {
+      "kind": "healthy",
+      "resource": "i-web"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：检查目标资源的状态与权限。",
+      "ja": "Mira：対象の状態と権限を確認。",
+      "en": "Mira: Inspect target state and permissions."
+    },
+    {
+      "zh": "先停止实例再调整规格，再启动并确认健康。这里使用教学虚拟价格。",
+      "ja": "停止後にタイプ変更し、起動して正常性を確認します。価格は教育用です。",
+      "en": "Stop before resizing, then start and verify health. Prices are educational."
+    },
+    {
+      "zh": "Mira：在操作面板选择目标和命令，参考学习总结中的原理。",
+      "ja": "Mira：操作パネルで対象とコマンドを選択。",
+      "en": "Mira: Select the target and command in the action panel."
+    }
+  ],
+  "reference": [
+    {
+      "op": "stop",
+      "id": "i-web",
+      "args": {},
+      "policies": []
+    },
+    {
+      "op": "resizeInstance",
+      "id": "i-web",
+      "args": {
+        "instanceType": "t3.micro"
+      },
+      "policies": []
+    },
+    {
+      "op": "start",
+      "id": "i-web",
+      "args": {},
+      "policies": []
+    }
+  ],
+  "xp": 150,
+  "coins": 50
+}

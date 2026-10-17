@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-004",
+  "chapterId": "chapter-01",
+  "order": 4,
+  "playable": true,
+  "title": {
+    "zh": "服务器身份",
+    "ja": "サーバーのアイデンティティ",
+    "en": "Server identity"
+  },
+  "story": {
+    "zh": "2035 年，Commander Nova：Shadow Fault 正在破坏云城。服务器身份，由你负责。",
+    "ja": "2035年、Nova：Shadow Fault が都市を攻撃中。任務：サーバーのアイデンティティ。",
+    "en": "2035. Commander Nova: Shadow Fault has attacked the city. Your mission: Server identity."
+  },
+  "lesson": {
+    "zh": "角色需要服务信任和资源权限，并关联到实例。",
+    "ja": "ロールにはサービス信頼とリソース権限、インスタンスへの関連付けが必要です。",
+    "en": "A role needs service trust, resource permissions, and instance association."
+  },
+  "services": [
+    "IAM"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "port": "443"
+      },
+      "policies": []
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "fault-004"
+  ],
+  "objectives": [
+    {
+      "kind": "roleAccess",
+      "resource": "i-web",
+      "action": "s3:GetObject",
+      "target": "arn:aws:s3:::rescue/map"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：检查目标资源的状态与权限。",
+      "ja": "Mira：対象の状態と権限を確認。",
+      "en": "Mira: Inspect target state and permissions."
+    },
+    {
+      "zh": "角色需要服务信任和资源权限，并关联到实例。",
+      "ja": "ロールにはサービス信頼とリソース権限、インスタンスへの関連付けが必要です。",
+      "en": "A role needs service trust, resource permissions, and instance association."
+    },
+    {
+      "zh": "Mira：在操作面板选择目标和命令，参考学习总结中的原理。",
+      "ja": "Mira：操作パネルで対象とコマンドを選択。",
+      "en": "Mira: Select the target and command in the action panel."
+    }
+  ],
+  "reference": [
+    {
+      "op": "create",
+      "id": "web-role",
+      "args": {
+        "type": "role"
+      },
+      "policies": []
+    },
+    {
+      "op": "trust",
+      "id": "web-role",
+      "args": {
+        "service": "ec2.amazonaws.com"
+      },
+      "policies": []
+    },
+    {
+      "op": "policy",
+      "id": "web-role",
+      "args": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "s3:GetObject"
+          ],
+          "resources": [
+            "arn:aws:s3:::rescue/*"
+          ]
+        }
+      ]
+    },
+    {
+      "op": "attachRole",
+      "id": "i-web",
+      "args": {
+        "role": "web-role"
+      },
+      "policies": []
+    }
+  ],
+  "xp": 150,
+  "coins": 50
+}

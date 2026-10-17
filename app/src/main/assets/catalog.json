@@ -1,0 +1,605 @@
+{
+  "contentVersion": 1,
+  "missions": [
+    {
+      "id": "aws-001",
+      "title": {
+        "zh": "第一座云端基地",
+        "ja": "最初のクラウド基地",
+        "en": "First cloud base"
+      },
+      "playable": true,
+      "chapterId": "chapter-01"
+    },
+    {
+      "id": "aws-002",
+      "title": {
+        "zh": "创建云端工作人员",
+        "ja": "クラウド担当者の作成",
+        "en": "Cloud operator"
+      },
+      "playable": true,
+      "chapterId": "chapter-01"
+    },
+    {
+      "id": "aws-003",
+      "title": {
+        "zh": "过大的权限",
+        "ja": "過剰な権限",
+        "en": "Excessive permissions"
+      },
+      "playable": true,
+      "chapterId": "chapter-01"
+    },
+    {
+      "id": "aws-004",
+      "title": {
+        "zh": "服务器身份",
+        "ja": "サーバーのアイデンティティ",
+        "en": "Server identity"
+      },
+      "playable": true,
+      "chapterId": "chapter-01"
+    },
+    {
+      "id": "aws-005",
+      "title": {
+        "zh": "身份危机",
+        "ja": "認証の危機",
+        "en": "Identity crisis"
+      },
+      "playable": true,
+      "chapterId": "chapter-01"
+    },
+    {
+      "id": "aws-006",
+      "title": {
+        "zh": "最小权限决战",
+        "ja": "最小権限の決戦",
+        "en": "Least privilege"
+      },
+      "playable": true,
+      "chapterId": "chapter-01"
+    },
+    {
+      "id": "aws-007",
+      "title": {
+        "zh": "第一台 EC2",
+        "ja": "最初の EC2",
+        "en": "First EC2"
+      },
+      "playable": true,
+      "chapterId": "chapter-02"
+    },
+    {
+      "id": "aws-008",
+      "title": {
+        "zh": "停机的 Web 服务器",
+        "ja": "停止した Web サーバー",
+        "en": "Stopped web server"
+      },
+      "playable": true,
+      "chapterId": "chapter-02"
+    },
+    {
+      "id": "aws-009",
+      "title": {
+        "zh": "磁盘空间危机",
+        "ja": "ディスク容量の危機",
+        "en": "Disk capacity crisis"
+      },
+      "playable": true,
+      "chapterId": "chapter-02"
+    },
+    {
+      "id": "aws-010",
+      "title": {
+        "zh": "服务器镜像",
+        "ja": "サーバーイメージ",
+        "en": "Server image"
+      },
+      "playable": true,
+      "chapterId": "chapter-02"
+    },
+    {
+      "id": "aws-011",
+      "title": {
+        "zh": "高成本服务器",
+        "ja": "高コストのサーバー",
+        "en": "Expensive server"
+      },
+      "playable": true,
+      "chapterId": "chapter-02"
+    },
+    {
+      "id": "aws-012",
+      "title": {
+        "zh": "午夜故障",
+        "ja": "真夜中の障害",
+        "en": "Midnight outage"
+      },
+      "playable": true,
+      "chapterId": "chapter-02"
+    },
+    {
+      "id": "aws-013",
+      "title": {
+        "zh": "创建 VPC 和子网",
+        "ja": "計画中 13",
+        "en": "Planned mission 13"
+      },
+      "playable": false,
+      "chapterId": "chapter-03"
+    },
+    {
+      "id": "aws-014",
+      "title": {
+        "zh": "配置网关与路由",
+        "ja": "計画中 14",
+        "en": "Planned mission 14"
+      },
+      "playable": false,
+      "chapterId": "chapter-03"
+    },
+    {
+      "id": "aws-015",
+      "title": {
+        "zh": "网络访问排障",
+        "ja": "計画中 15",
+        "en": "Planned mission 15"
+      },
+      "playable": false,
+      "chapterId": "chapter-03"
+    },
+    {
+      "id": "aws-016",
+      "title": {
+        "zh": "保护私有数据库",
+        "ja": "計画中 16",
+        "en": "Planned mission 16"
+      },
+      "playable": false,
+      "chapterId": "chapter-03"
+    },
+    {
+      "id": "aws-017",
+      "title": {
+        "zh": "NAT 出站访问",
+        "ja": "計画中 17",
+        "en": "Planned mission 17"
+      },
+      "playable": false,
+      "chapterId": "chapter-03"
+    },
+    {
+      "id": "aws-018",
+      "title": {
+        "zh": "复杂 VPC 故障",
+        "ja": "計画中 18",
+        "en": "Planned mission 18"
+      },
+      "playable": false,
+      "chapterId": "chapter-03"
+    },
+    {
+      "id": "aws-019",
+      "title": {
+        "zh": "S3 对象存储",
+        "ja": "計画中 19",
+        "en": "Planned mission 19"
+      },
+      "playable": false,
+      "chapterId": "chapter-04"
+    },
+    {
+      "id": "aws-020",
+      "title": {
+        "zh": "S3 版本恢复",
+        "ja": "計画中 20",
+        "en": "Planned mission 20"
+      },
+      "playable": false,
+      "chapterId": "chapter-04"
+    },
+    {
+      "id": "aws-021",
+      "title": {
+        "zh": "S3 公开风险",
+        "ja": "計画中 21",
+        "en": "Planned mission 21"
+      },
+      "playable": false,
+      "chapterId": "chapter-04"
+    },
+    {
+      "id": "aws-022",
+      "title": {
+        "zh": "生命周期归档",
+        "ja": "計画中 22",
+        "en": "Planned mission 22"
+      },
+      "playable": false,
+      "chapterId": "chapter-04"
+    },
+    {
+      "id": "aws-023",
+      "title": {
+        "zh": "EFS 共享存储",
+        "ja": "計画中 23",
+        "en": "Planned mission 23"
+      },
+      "playable": false,
+      "chapterId": "chapter-04"
+    },
+    {
+      "id": "aws-024",
+      "title": {
+        "zh": "快照和数据保护",
+        "ja": "計画中 24",
+        "en": "Planned mission 24"
+      },
+      "playable": false,
+      "chapterId": "chapter-04"
+    },
+    {
+      "id": "aws-025",
+      "title": {
+        "zh": "部署 RDS",
+        "ja": "計画中 25",
+        "en": "Planned mission 25"
+      },
+      "playable": false,
+      "chapterId": "chapter-05"
+    },
+    {
+      "id": "aws-026",
+      "title": {
+        "zh": "数据库连接排障",
+        "ja": "計画中 26",
+        "en": "Planned mission 26"
+      },
+      "playable": false,
+      "chapterId": "chapter-05"
+    },
+    {
+      "id": "aws-027",
+      "title": {
+        "zh": "RDS 备份恢复",
+        "ja": "計画中 27",
+        "en": "Planned mission 27"
+      },
+      "playable": false,
+      "chapterId": "chapter-05"
+    },
+    {
+      "id": "aws-028",
+      "title": {
+        "zh": "Multi-AZ 切换",
+        "ja": "計画中 28",
+        "en": "Planned mission 28"
+      },
+      "playable": false,
+      "chapterId": "chapter-05"
+    },
+    {
+      "id": "aws-029",
+      "title": {
+        "zh": "DynamoDB 主键",
+        "ja": "計画中 29",
+        "en": "Planned mission 29"
+      },
+      "playable": false,
+      "chapterId": "chapter-05"
+    },
+    {
+      "id": "aws-030",
+      "title": {
+        "zh": "综合数据库事故",
+        "ja": "計画中 30",
+        "en": "Planned mission 30"
+      },
+      "playable": false,
+      "chapterId": "chapter-05"
+    },
+    {
+      "id": "aws-031",
+      "title": {
+        "zh": "ALB 目标组",
+        "ja": "計画中 31",
+        "en": "Planned mission 31"
+      },
+      "playable": false,
+      "chapterId": "chapter-06"
+    },
+    {
+      "id": "aws-032",
+      "title": {
+        "zh": "ALB 健康检查",
+        "ja": "計画中 32",
+        "en": "Planned mission 32"
+      },
+      "playable": false,
+      "chapterId": "chapter-06"
+    },
+    {
+      "id": "aws-033",
+      "title": {
+        "zh": "Auto Scaling",
+        "ja": "計画中 33",
+        "en": "Planned mission 33"
+      },
+      "playable": false,
+      "chapterId": "chapter-06"
+    },
+    {
+      "id": "aws-034",
+      "title": {
+        "zh": "Route 53",
+        "ja": "計画中 34",
+        "en": "Planned mission 34"
+      },
+      "playable": false,
+      "chapterId": "chapter-06"
+    },
+    {
+      "id": "aws-035",
+      "title": {
+        "zh": "CloudFront",
+        "ja": "計画中 35",
+        "en": "Planned mission 35"
+      },
+      "playable": false,
+      "chapterId": "chapter-06"
+    },
+    {
+      "id": "aws-036",
+      "title": {
+        "zh": "流量风暴",
+        "ja": "計画中 36",
+        "en": "Planned mission 36"
+      },
+      "playable": false,
+      "chapterId": "chapter-06"
+    },
+    {
+      "id": "aws-037",
+      "title": {
+        "zh": "CloudWatch 指标",
+        "ja": "計画中 37",
+        "en": "Planned mission 37"
+      },
+      "playable": false,
+      "chapterId": "chapter-07"
+    },
+    {
+      "id": "aws-038",
+      "title": {
+        "zh": "Alarm 与 SNS",
+        "ja": "計画中 38",
+        "en": "Planned mission 38"
+      },
+      "playable": false,
+      "chapterId": "chapter-07"
+    },
+    {
+      "id": "aws-039",
+      "title": {
+        "zh": "日志分析",
+        "ja": "計画中 39",
+        "en": "Planned mission 39"
+      },
+      "playable": false,
+      "chapterId": "chapter-07"
+    },
+    {
+      "id": "aws-040",
+      "title": {
+        "zh": "CloudTrail 审计",
+        "ja": "計画中 40",
+        "en": "Planned mission 40"
+      },
+      "playable": false,
+      "chapterId": "chapter-07"
+    },
+    {
+      "id": "aws-041",
+      "title": {
+        "zh": "监控 Dashboard",
+        "ja": "計画中 41",
+        "en": "Planned mission 41"
+      },
+      "playable": false,
+      "chapterId": "chapter-07"
+    },
+    {
+      "id": "aws-042",
+      "title": {
+        "zh": "午夜告警",
+        "ja": "計画中 42",
+        "en": "Planned mission 42"
+      },
+      "playable": false,
+      "chapterId": "chapter-07"
+    },
+    {
+      "id": "aws-043",
+      "title": {
+        "zh": "Lambda 处理器",
+        "ja": "計画中 43",
+        "en": "Planned mission 43"
+      },
+      "playable": false,
+      "chapterId": "chapter-08"
+    },
+    {
+      "id": "aws-044",
+      "title": {
+        "zh": "EventBridge",
+        "ja": "計画中 44",
+        "en": "Planned mission 44"
+      },
+      "playable": false,
+      "chapterId": "chapter-08"
+    },
+    {
+      "id": "aws-045",
+      "title": {
+        "zh": "Systems Manager",
+        "ja": "計画中 45",
+        "en": "Planned mission 45"
+      },
+      "playable": false,
+      "chapterId": "chapter-08"
+    },
+    {
+      "id": "aws-046",
+      "title": {
+        "zh": "批量补丁",
+        "ja": "計画中 46",
+        "en": "Planned mission 46"
+      },
+      "playable": false,
+      "chapterId": "chapter-08"
+    },
+    {
+      "id": "aws-047",
+      "title": {
+        "zh": "CloudFormation",
+        "ja": "計画中 47",
+        "en": "Planned mission 47"
+      },
+      "playable": false,
+      "chapterId": "chapter-08"
+    },
+    {
+      "id": "aws-048",
+      "title": {
+        "zh": "自动恢复",
+        "ja": "計画中 48",
+        "en": "Planned mission 48"
+      },
+      "playable": false,
+      "chapterId": "chapter-08"
+    },
+    {
+      "id": "aws-049",
+      "title": {
+        "zh": "ECR 镜像",
+        "ja": "計画中 49",
+        "en": "Planned mission 49"
+      },
+      "playable": false,
+      "chapterId": "chapter-09"
+    },
+    {
+      "id": "aws-050",
+      "title": {
+        "zh": "ECS Service",
+        "ja": "計画中 50",
+        "en": "Planned mission 50"
+      },
+      "playable": false,
+      "chapterId": "chapter-09"
+    },
+    {
+      "id": "aws-051",
+      "title": {
+        "zh": "容器启动故障",
+        "ja": "計画中 51",
+        "en": "Planned mission 51"
+      },
+      "playable": false,
+      "chapterId": "chapter-09"
+    },
+    {
+      "id": "aws-052",
+      "title": {
+        "zh": "EKS Deployment",
+        "ja": "計画中 52",
+        "en": "Planned mission 52"
+      },
+      "playable": false,
+      "chapterId": "chapter-09"
+    },
+    {
+      "id": "aws-053",
+      "title": {
+        "zh": "CrashLoopBackOff",
+        "ja": "計画中 53",
+        "en": "Planned mission 53"
+      },
+      "playable": false,
+      "chapterId": "chapter-09"
+    },
+    {
+      "id": "aws-054",
+      "title": {
+        "zh": "容器架构恢复",
+        "ja": "計画中 54",
+        "en": "Planned mission 54"
+      },
+      "playable": false,
+      "chapterId": "chapter-09"
+    },
+    {
+      "id": "aws-055",
+      "title": {
+        "zh": "Organizations SCP",
+        "ja": "計画中 55",
+        "en": "Planned mission 55"
+      },
+      "playable": false,
+      "chapterId": "chapter-10"
+    },
+    {
+      "id": "aws-056",
+      "title": {
+        "zh": "KMS 加密",
+        "ja": "計画中 56",
+        "en": "Planned mission 56"
+      },
+      "playable": false,
+      "chapterId": "chapter-10"
+    },
+    {
+      "id": "aws-057",
+      "title": {
+        "zh": "成本优化",
+        "ja": "計画中 57",
+        "en": "Planned mission 57"
+      },
+      "playable": false,
+      "chapterId": "chapter-10"
+    },
+    {
+      "id": "aws-058",
+      "title": {
+        "zh": "跨区域恢复",
+        "ja": "計画中 58",
+        "en": "Planned mission 58"
+      },
+      "playable": false,
+      "chapterId": "chapter-10"
+    },
+    {
+      "id": "aws-059",
+      "title": {
+        "zh": "架构评审",
+        "ja": "計画中 59",
+        "en": "Planned mission 59"
+      },
+      "playable": false,
+      "chapterId": "chapter-10"
+    },
+    {
+      "id": "aws-060",
+      "title": {
+        "zh": "Shadow Fault 最终战役",
+        "ja": "計画中 60",
+        "en": "Planned mission 60"
+      },
+      "playable": false,
+      "chapterId": "chapter-10"
+    }
+  ]
+}

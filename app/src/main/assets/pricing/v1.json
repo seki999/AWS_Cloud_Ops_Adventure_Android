@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "disclaimer": "教学模拟价格，不代表 AWS 当前实际报价。",
+  "hourly": {
+    "t3.micro": 0.02,
+    "t3.small": 0.04,
+    "m5.large": 0.12
+  },
+  "volumeGiBHour": 0.0001
+}

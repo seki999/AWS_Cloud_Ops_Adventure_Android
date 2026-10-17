@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-009",
+  "chapterId": "chapter-02",
+  "order": 9,
+  "playable": true,
+  "title": {
+    "zh": "磁盘空间危机",
+    "ja": "ディスク容量の危機",
+    "en": "Disk capacity crisis"
+  },
+  "story": {
+    "zh": "2035 年，Commander Nova：Shadow Fault 正在破坏云城。磁盘空间危机，由你负责。",
+    "ja": "2035年、Nova：Shadow Fault が都市を攻撃中。任務：ディスク容量の危機。",
+    "en": "2035. Commander Nova: Shadow Fault has attacked the city. Your mission: Disk capacity crisis."
+  },
+  "lesson": {
+    "zh": "EBS 扩容不会自动扩展文件系统。必须执行 growFilesystem。",
+    "ja": "EBS 拡張はファイルシステムを拡張しません。growFilesystem が必要です。",
+    "en": "EBS expansion does not grow the filesystem. Run growFilesystem separately."
+  },
+  "services": [
+    "EC2",
+    "IAM",
+    "CloudWatch"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "port": "443"
+      },
+      "policies": []
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25"
+      },
+      "policies": []
+    },
+    {
+      "id": "vol-data",
+      "type": "volume",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "size": "8",
+        "fsSize": "8",
+        "used": "7",
+        "instance": "i-web",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "fault-009"
+  ],
+  "objectives": [
+    {
+      "kind": "diskFree",
+      "resource": "vol-data",
+      "value": "8"
+    },
+    {
+      "kind": "attribute",
+      "resource": "vol-data",
+      "key": "instance",
+      "value": "i-web"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：检查目标资源的状态与权限。",
+      "ja": "Mira：対象の状態と権限を確認。",
+      "en": "Mira: Inspect target state and permissions."
+    },
+    {
+      "zh": "EBS 扩容不会自动扩展文件系统。必须执行 growFilesystem。",
+      "ja": "EBS 拡張はファイルシステムを拡張しません。growFilesystem が必要です。",
+      "en": "EBS expansion does not grow the filesystem. Run growFilesystem separately."
+    },
+    {
+      "zh": "Mira：在操作面板选择目标和命令，参考学习总结中的原理。",
+      "ja": "Mira：操作パネルで対象とコマンドを選択。",
+      "en": "Mira: Select the target and command in the action panel."
+    }
+  ],
+  "reference": [
+    {
+      "op": "resizeVolume",
+      "id": "vol-data",
+      "args": {
+        "size": "20"
+      },
+      "policies": []
+    },
+    {
+      "op": "growFilesystem",
+      "id": "vol-data",
+      "args": {},
+      "policies": []
+    }
+  ],
+  "xp": 150,
+  "coins": 50
+}

@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-010",
+  "chapterId": "chapter-02",
+  "order": 10,
+  "playable": true,
+  "title": {
+    "zh": "服务器镜像",
+    "ja": "サーバーイメージ",
+    "en": "Server image"
+  },
+  "story": {
+    "zh": "2035 年，Commander Nova：Shadow Fault 正在破坏云城。服务器镜像，由你负责。",
+    "ja": "2035年、Nova：Shadow Fault が都市を攻撃中。任務：サーバーイメージ。",
+    "en": "2035. Commander Nova: Shadow Fault has attacked the city. Your mission: Server image."
+  },
+  "lesson": {
+    "zh": "AMI 保存源实例的应用状态。使用 AMI 克隆后验证应用。",
+    "ja": "AMI はソースのアプリ状態を保存します。クローン後に検証します。",
+    "en": "An AMI captures the source application state. Validate the clone."
+  },
+  "services": [
+    "EC2",
+    "IAM",
+    "CloudWatch"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "port": "443"
+      },
+      "policies": []
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "fault-010"
+  ],
+  "objectives": [
+    {
+      "kind": "attribute",
+      "resource": "ami-rescue",
+      "key": "source",
+      "value": "i-web"
+    },
+    {
+      "kind": "attribute",
+      "resource": "i-clone",
+      "key": "ami",
+      "value": "ami-rescue"
+    },
+    {
+      "kind": "healthy",
+      "resource": "i-clone"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：检查目标资源的状态与权限。",
+      "ja": "Mira：対象の状態と権限を確認。",
+      "en": "Mira: Inspect target state and permissions."
+    },
+    {
+      "zh": "AMI 保存源实例的应用状态。使用 AMI 克隆后验证应用。",
+      "ja": "AMI はソースのアプリ状態を保存します。クローン後に検証します。",
+      "en": "An AMI captures the source application state. Validate the clone."
+    },
+    {
+      "zh": "Mira：在操作面板选择目标和命令，参考学习总结中的原理。",
+      "ja": "Mira：操作パネルで対象とコマンドを選択。",
+      "en": "Mira: Select the target and command in the action panel."
+    }
+  ],
+  "reference": [
+    {
+      "op": "image",
+      "id": "i-web",
+      "args": {
+        "image": "ami-rescue"
+      },
+      "policies": []
+    },
+    {
+      "op": "create",
+      "id": "i-clone",
+      "args": {
+        "type": "instance",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-rescue",
+        "subnet": "subnet-a",
+        "sg": "sg-web"
+      },
+      "policies": []
+    }
+  ],
+  "xp": 150,
+  "coins": 50
+}
