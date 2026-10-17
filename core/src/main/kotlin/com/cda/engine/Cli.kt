@@ -30,16 +30,18 @@ No operating system shell is invoked. Other operations return UnsupportedOperati
     suspend fun execute(input: String): CliExecutionResult { return try {
         val tokens=tokenize(input)
         require(tokens.isNotEmpty()) { "EmptyCommand" }
+        if(tokens[0]=="kubectl")return kubernetes(tokens)
         if(tokens[0]=="sim") {
             require(tokens.size>=2)
+            if(tokens[1]=="help")return CliExecutionResult(true,SimulatorRegistry.operations.entries.filter { tokens.size<3 || it.key==tokens[2] }.joinToString("\n") { (op,spec) -> "$op ID ${spec.parameters} (optional: ${spec.optional.joinToString()})" })
             val op=tokens[1]; val args=tokens.drop(3).associate { val p=it.split('=',limit=2); require(p.size==2); p[0] to p[1] }
             val actual=if(op=="identity") mapOf("name" to tokens.getOrElse(2){""}) else args
             val r=bus.execute(SimulationCommand(op,tokens.getOrElse(2){""},actual))
             CliExecutionResult(r.success,jsonMessage(r.message))
         } else {
             require(tokens[0]=="aws") { "UnsupportedOperation: use aws or sim" }
-            if(tokens.drop(1)==listOf("help")) return CliExecutionResult(true,help)
-            if(tokens.drop(1)==listOf("--version")) return CliExecutionResult(true,"aws-cli/simulator-0.1 (offline; educational subset)")
+            if(tokens.drop(1)==listOf("help")) return CliExecutionResult(true,help+"\nChapters 3–10: aws s3api, rds, dynamodb, lambda, ecs, eks, ecr, elbv2, autoscaling, route53, cloudfront queries.\nAll supported simulator mutations: sim help\nSingle operation help: sim help createVpc\nkubectl get deployments|pods [-o json]; kubectl describe deployment ID; kubectl set image deployment/ID app=REPOSITORY:TAG; kubectl scale deployment/ID --replicas=N")
+            if(tokens.drop(1)==listOf("--version")) return CliExecutionResult(true,"aws-cli/simulator-0.2 (offline; educational subset)")
             if(tokens.drop(1)==listOf("configure","list")) return CliExecutionResult(true,"region: ${bus.observeWorld().value.region}\ncredentials: none (offline)")
             require(tokens.size>=3) { "Missing service/operation" }
             val service=tokens[1]; val op=tokens[2]
@@ -61,6 +63,19 @@ No operating system shell is invoked. Other operations return UnsupportedOperati
                 "ec2 describe-vpcs" -> Triple("ec2:DescribeVpcs","vpc","Vpcs")
                 "ec2 describe-subnets" -> Triple("ec2:DescribeSubnets","subnet","Subnets")
                 "ec2 describe-security-groups" -> Triple("ec2:DescribeSecurityGroups","sg","SecurityGroups")
+                "ec2 describe-route-tables" -> Triple("ec2:DescribeRouteTables","routeTable","RouteTables")
+                "ec2 describe-network-acls" -> Triple("ec2:DescribeNetworkAcls","nacl","NetworkAcls")
+                "s3 ls","s3api list-buckets" -> Triple("s3:ListAllMyBuckets","bucket","Buckets")
+                "rds describe-db-instances" -> Triple("rds:DescribeDBInstances","rds","DBInstances")
+                "dynamodb list-tables" -> Triple("dynamodb:ListTables","table","TableNames")
+                "lambda list-functions" -> Triple("lambda:ListFunctions","function","Functions")
+                "ecs list-clusters" -> Triple("ecs:ListClusters","ecsCluster","clusterArns")
+                "eks list-clusters" -> Triple("eks:ListClusters","eksCluster","clusters")
+                "ecr describe-repositories" -> Triple("ecr:DescribeRepositories","repository","repositories")
+                "elbv2 describe-target-groups" -> Triple("elasticloadbalancing:DescribeTargetGroups","targetGroup","TargetGroups")
+                "autoscaling describe-auto-scaling-groups" -> Triple("autoscaling:DescribeAutoScalingGroups","asg","AutoScalingGroups")
+                "cloudfront list-distributions" -> Triple("cloudfront:ListDistributions","distribution","DistributionList")
+                "sns list-topics" -> Triple("sns:ListTopics","topic","Topics")
                 "iam list-users" -> Triple("iam:ListUsers","user","Users")
                 "iam list-roles" -> Triple("iam:ListRoles","role","Roles")
                 else -> null
@@ -69,10 +84,22 @@ No operating system shell is invoked. Other operations return UnsupportedOperati
             if(service=="cloudwatch") {
                 only(); require(Iam.allowed(w,w.identity,"cloudwatch:"+if(op=="list-metrics")"ListMetrics" else "DescribeAlarms","*")) { "AccessDenied" }
                 require(op in listOf("list-metrics","describe-alarms")) { "UnsupportedOperation" }
-                val metrics=w.resources.filter { it.type=="instance" }.map { r -> buildJsonObject { put("InstanceId",r.id); put("CPUUtilization",if(r.attrs["state"]=="running")r.attrs["cpu"]?:"15" else "0"); put("AgentMemory",r.attrs["memory"]?:"25"); put("ResourceHealth",r.attrs["state"]=="running" && r.attrs["app"]=="running"); put("Tick",w.tick) } }
-                return CliExecutionResult(true,codec.encodeToString(buildJsonObject { put(if(op=="list-metrics")"Metrics" else "MetricAlarms", if(op=="list-metrics")JsonArray(metrics) else JsonArray(emptyList())) }))
+                val metrics=w.resources.filter { it.type in listOf("instance","alb","rds","ecsService","deployment") && it.region==w.region }.map { r -> buildJsonObject { put("ResourceId",r.id);SimulationRuntime.metricNames.forEach { name -> put(name,SimulationRuntime.metric(w,r.id,name)) };put("Tick",w.tick) } }
+                return CliExecutionResult(true,codec.encodeToString(buildJsonObject { put(if(op=="list-metrics")"Metrics" else "MetricAlarms", if(op=="list-metrics")JsonArray(metrics) else codec.encodeToJsonElement(w.resources.filter { it.type=="alarm" && it.region==w.region })) }))
             }
             val c=when("$service $op") {
+                "s3api create-bucket" -> { only("bucket");SimulationCommand("createBucket",required("bucket")) }
+                "s3api put-object" -> { only("bucket","key","body");SimulationCommand("putObject",required("bucket"),mapOf("key" to required("key"),"content" to required("body"))) }
+                "s3api get-object" -> { only("bucket","key");SimulationCommand("readObject",required("bucket"),mapOf("key" to required("key"))) }
+                "s3api delete-object" -> { only("bucket","key");SimulationCommand("deleteObject",required("bucket"),mapOf("key" to required("key"))) }
+                "ec2 create-vpc" -> { only("vpc-id","cidr-block");SimulationCommand("createVpc",required("vpc-id"),mapOf("cidr" to required("cidr-block"))) }
+                "ec2 create-subnet" -> { only("subnet-id","vpc-id","cidr-block","availability-zone");SimulationCommand("createSubnet",required("subnet-id"),mapOf("vpc" to required("vpc-id"),"cidr" to required("cidr-block"),"az" to required("availability-zone"))) }
+                "ec2 create-route" -> { only("route-table-id","destination-cidr-block","gateway-id");SimulationCommand("putRoute",required("route-table-id"),mapOf("cidr" to required("destination-cidr-block"),"target" to required("gateway-id"))) }
+                "lambda invoke" -> { only("function-name");SimulationCommand("invokeFunction",required("function-name")) }
+                "rds reboot-db-instance" -> { only("db-instance-identifier","force-failover");require(required("force-failover")=="true");SimulationCommand("failoverRds",required("db-instance-identifier")) }
+                "logs filter-log-events" -> { only("log-group-name");SimulationCommand("inspectLogs",required("log-group-name")) }
+                "cloudtrail lookup-events" -> { only("resource-name");SimulationCommand("inspectAudit",required("resource-name")) }
+                "autoscaling set-desired-capacity" -> { only("auto-scaling-group-name","desired-capacity");SimulationCommand("scaleAsg",required("auto-scaling-group-name"),mapOf("desired" to required("desired-capacity"))) }
                 "ec2 start-instances","ec2 stop-instances","ec2 reboot-instances","ec2 terminate-instances" -> { only("instance-ids"); SimulationCommand(op.substringBefore('-'),required("instance-ids")) }
                 "ec2 run-instances" -> { only("instance-id","instance-type","image-id","subnet-id","security-group-ids","availability-zone"); SimulationCommand("create",required("instance-id"),mapOf("type" to "instance","instanceType" to required("instance-type"),"ami" to required("image-id"),"subnet" to required("subnet-id"),"sg" to required("security-group-ids"),"az" to required("availability-zone"))) }
                 "ec2 create-volume" -> { only("volume-id","size","availability-zone"); SimulationCommand("create",required("volume-id"),mapOf("type" to "volume","size" to required("size"),"az" to required("availability-zone"),"fsSize" to "0","used" to "0")) }
@@ -90,6 +117,23 @@ No operating system shell is invoked. Other operations return UnsupportedOperati
         }
     } catch(e: Exception) { CliExecutionResult(false,jsonMessage(e.message?:"InvalidCommand")) } }
     private fun jsonMessage(message: String)=codec.encodeToString(buildJsonObject { put("Message",message) })
+    private suspend fun kubernetes(tokens: List<String>): CliExecutionResult {
+        val w=bus.observeWorld().value
+        if(tokens.getOrNull(1)=="get") {
+            require(tokens.size==3 || (tokens.size==5 && tokens[3]=="-o" && tokens[4]=="json")) { "Unsupported kubectl options" }
+            require(tokens[2] in listOf("deployments","pods")) { "Unsupported Kubernetes resource" }
+            require(Iam.allowed(w,w.identity,"eks:DescribeDeployment","*")) { "AccessDenied" }
+            val items=w.resources.filter { it.type=="deployment" && it.region==w.region }.map { r -> buildJsonObject { putJsonObject("metadata") { put("name",r.id) };putJsonObject("status") { put("phase",ServiceRules.containerStatus(w,r));put("readyReplicas",if(ServiceRules.ready(w,r.id))r.attrs["replicas"]?.toInt()?:0 else 0) } } }
+            return CliExecutionResult(true,codec.encodeToString(buildJsonObject { put("items",JsonArray(items)) }))
+        }
+        val c=when {
+            tokens.size==4 && tokens[1]=="describe" && tokens[2]=="deployment" -> SimulationCommand("inspectContainers",tokens[3])
+            tokens.size==5 && tokens[1]=="set" && tokens[2]=="image" && tokens[3].startsWith("deployment/") && tokens[4].startsWith("app=") -> SimulationCommand("configureDeployment",tokens[3].substringAfter('/'),mapOf("image" to tokens[4].substringAfter('=')))
+            tokens.size==4 && tokens[1]=="scale" && tokens[2].startsWith("deployment/") && tokens[3].startsWith("--replicas=") -> SimulationCommand("configureDeployment",tokens[2].substringAfter('/'),mapOf("replicas" to tokens[3].substringAfter('=')))
+            else -> error("Unsupported Kubernetes command; use aws help")
+        }
+        val result=bus.execute(c);return CliExecutionResult(result.success,jsonMessage(result.message))
+    }
     private fun parsePolicy(s: String): List<Policy> {
         val doc=codec.parseToJsonElement(s).jsonObject
         require(doc.keys.all { it in listOf("Version","Statement") }) { "Unsupported policy semantics" }

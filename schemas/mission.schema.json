@@ -200,6 +200,24 @@
           "items": {
             "$ref": "#/$defs/policy"
           }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rule"
+          }
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/route"
+          }
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/object"
+          }
         }
       }
     },
@@ -252,7 +270,32 @@
             "diskFree",
             "hourlyBudget",
             "healthy",
-            "roleAccess"
+            "roleAccess",
+            "network",
+            "networkBlocked",
+            "objectContent",
+            "objectReadable",
+            "bucketPrivate",
+            "objectStorage",
+            "efsMounted",
+            "backup",
+            "database",
+            "tableItem",
+            "serviceReady",
+            "observed",
+            "alarm",
+            "notified",
+            "dashboard",
+            "patched",
+            "stack",
+            "containerReady",
+            "encrypted",
+            "replica",
+            "architecture",
+            "metricBelow",
+            "automationRan",
+            "atLeast",
+            "noOpenIngress"
           ]
         },
         "resource": {
@@ -269,6 +312,114 @@
         },
         "target": {
           "type": "string"
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "cidr",
+        "protocol",
+        "fromPort",
+        "toPort",
+        "number",
+        "effect"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "in",
+            "out"
+          ]
+        },
+        "cidr": {
+          "type": "string"
+        },
+        "protocol": {
+          "enum": [
+            "tcp",
+            "udp",
+            "all"
+          ]
+        },
+        "fromPort": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "toPort": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32766
+        },
+        "effect": {
+          "enum": [
+            "Allow",
+            "Deny"
+          ]
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cidr",
+        "target"
+      ],
+      "properties": {
+        "cidr": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "key",
+        "content",
+        "tick",
+        "deleted",
+        "storageClass",
+        "encryptionKey"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "encryptionKey": {
+          "type": "string"
+        },
+        "tick": {
+          "type": "integer"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "storageClass": {
+          "enum": [
+            "STANDARD",
+            "STANDARD_IA",
+            "GLACIER"
+          ]
         }
       }
     }

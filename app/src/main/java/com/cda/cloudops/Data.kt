@@ -14,7 +14,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
 
 @HiltAndroidApp class CloudApp: Application()
 @Entity(tableName="snapshots") data class Snapshot(@PrimaryKey val id: Int = 1, val json: String)
@@ -26,14 +25,13 @@ import kotlinx.serialization.encodeToString
 abstract class SaveDatabase: RoomDatabase() { abstract fun snapshots(): SnapshotDao }
 private val Context.settings by preferencesDataStore("settings")
 class GameRepository @Inject constructor(private val app: Application) {
-    val missions = (1..12).map { codec.decodeFromString<MissionDefinition>(app.assets.open("missions/aws-%03d.json".format(it)).bufferedReader().use { r -> r.readText() }) }
+    val missions = app.assets.list("missions").orEmpty().filter { it.endsWith(".json") }.sorted().map { codec.decodeFromString<MissionDefinition>(app.assets.open("missions/$it").bufferedReader().use { r -> r.readText() }) }.filter { it.playable }
     private val dao = Room.databaseBuilder(app,SaveDatabase::class.java,"cloudops.db").build().snapshots()
     val language=app.settings.data.map { it[stringPreferencesKey("language")] ?: "zh" }
     suspend fun language(value: String) { app.settings.edit { it[stringPreferencesKey("language")]=value } }
     suspend fun engine(): CommandBus {
-        val saved=dao.load()?.let { codec.decodeFromString<WorldState>(it.json) } ?: WorldState()
-        require(saved.schemaVersion==1) { "Unsupported save version; existing save preserved" }
-        return CommandBus(missions,saved) { dao.save(Snapshot(json=codec.encodeToString(it))) }
+        val saved=dao.load()?.let { SaveCodec.decode(it.json) } ?: WorldState()
+        return CommandBus(missions,saved) { dao.save(Snapshot(json=SaveCodec.encode(it))) }
     }
 }
 @HiltViewModel class GameViewModel @Inject constructor(app: Application, private val repo: GameRepository): AndroidViewModel(app) {

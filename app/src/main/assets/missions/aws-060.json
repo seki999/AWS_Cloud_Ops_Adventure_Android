@@ -1,0 +1,725 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-060",
+  "chapterId": "chapter-10",
+  "order": 60,
+  "playable": true,
+  "title": {
+    "zh": "Shadow Fault 最终战役",
+    "ja": "Shadow Fault 最終決戦",
+    "en": "Shadow Fault final battle"
+  },
+  "story": {
+    "zh": "2035 年，Nova：Shadow Fault 制造了新的故障。任务：Shadow Fault 最终战役。诊断资源并恢复云城。",
+    "ja": "2035年、Nova：Shadow Fault が障害を発生。任務：Shadow Fault 最終決戦。リソースを調べ都市を復旧せよ。",
+    "en": "2035. Nova: Shadow Fault has caused another incident. Mission: Shadow Fault final battle. Diagnose the resources and restore the city."
+  },
+  "lesson": {
+    "zh": "最终恢复依赖应用、网络、数据权限、容器、监控与安全；只修复一个服务不能通关。",
+    "ja": "最終復旧はアプリ、ネットワーク、権限、コンテナ、監視、安全性を組み合わせて判定。",
+    "en": "Final recovery combines application, networking, data access, containers, monitoring and safety; one repaired service is insufficient."
+  },
+  "services": [
+    "Organizations",
+    "KMS",
+    "VPC",
+    "RDS",
+    "S3",
+    "CloudWatch"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a",
+        "routeTable": "rt-public",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-c",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.2.0/24",
+        "az": "ap-northeast-1c",
+        "routeTable": "rt-private",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "rt-public",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        },
+        {
+          "cidr": "0.0.0.0/0",
+          "target": "igw-main"
+        }
+      ]
+    },
+    {
+      "id": "rt-private",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        }
+      ]
+    },
+    {
+      "id": "igw-main",
+      "type": "igw",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "attached": "true"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "10.0.0.0/16",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "tcp",
+          "fromPort": 443,
+          "toPort": 443,
+          "number": 200,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "sg-db",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "acl-main",
+      "type": "nacl",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "stopped",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.1.10",
+        "publicIp": "198.51.100.10",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-private",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1c",
+        "ami": "ami-base",
+        "subnet": "subnet-c",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.2.10",
+        "publicIp": "",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "tg-web",
+      "type": "targetGroup",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "targets": "i-web",
+        "port": "80",
+        "healthPath": "/wrong"
+      },
+      "policies": []
+    },
+    {
+      "id": "edge-alb",
+      "type": "alb",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "privateIp": "10.0.1.30",
+        "publicIp": "198.51.100.30",
+        "state": "active",
+        "listenPorts": "443",
+        "targetGroup": "tg-web",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "lambda-role",
+      "type": "role",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "trust": "lambda.amazonaws.com"
+      },
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "ssm:SendCommand"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fn-recover",
+      "type": "function",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "behavior": "RestartApplication",
+        "target": "i-web",
+        "role": "lambda-role"
+      },
+      "policies": []
+    },
+    {
+      "id": "repo-rescue",
+      "type": "repository",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "image:v1": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "port:v1": "8080"
+      },
+      "policies": []
+    },
+    {
+      "id": "task-role",
+      "type": "role",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "trust": "ecs-tasks.amazonaws.com"
+      },
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "ecr:BatchGetImage"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eks-role",
+      "type": "role",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "trust": "eks.amazonaws.com"
+      },
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ecs-core",
+      "type": "ecsCluster",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "active"
+      },
+      "policies": []
+    },
+    {
+      "id": "task-web",
+      "type": "task",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "image": "repo-rescue:v1",
+        "role": "task-role",
+        "port": "80",
+        "environment": "APP_MODE=production"
+      },
+      "policies": []
+    },
+    {
+      "id": "ecs-web",
+      "type": "ecsService",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cluster": "ecs-core",
+        "task": "task-web",
+        "desired": "2"
+      },
+      "policies": []
+    },
+    {
+      "id": "db-main",
+      "type": "rds",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "subnet": "subnet-c",
+        "sg": "sg-db",
+        "privateIp": "10.0.2.20",
+        "state": "available",
+        "listenPorts": "5432",
+        "engine": "postgres",
+        "data": "patients-safe",
+        "multiAz": "false",
+        "backupDays": "0",
+        "failovers": "0"
+      },
+      "policies": []
+    },
+    {
+      "id": "rescue",
+      "type": "bucket",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "versioning": "true",
+        "blockPublicAccess": "false",
+        "publicRead": "true",
+        "encryptionKey": "key-rescue"
+      },
+      "policies": [],
+      "objects": [
+        {
+          "version": "v1",
+          "key": "map",
+          "content": "city-restored",
+          "tick": 0,
+          "deleted": false,
+          "storageClass": "STANDARD",
+          "encryptionKey": "key-rescue"
+        }
+      ]
+    },
+    {
+      "id": "key-rescue",
+      "type": "kmsKey",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "principals": "commander",
+        "enabled": "false"
+      },
+      "policies": []
+    },
+    {
+      "id": "topic-ops",
+      "type": "topic",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "subscriber": "CDA inbox"
+      },
+      "policies": []
+    },
+    {
+      "id": "alarm-health",
+      "type": "alarm",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "resource": "i-web",
+        "metric": "ResourceHealth",
+        "threshold": "0",
+        "comparison": "lt",
+        "periods": "1",
+        "topic": "topic-ops",
+        "state": "INSUFFICIENT_DATA"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "authored-fault-060"
+  ],
+  "objectives": [
+    {
+      "kind": "serviceReady",
+      "resource": "edge-alb"
+    },
+    {
+      "kind": "database",
+      "resource": "db-main",
+      "target": "i-web"
+    },
+    {
+      "kind": "bucketPrivate",
+      "resource": "rescue"
+    },
+    {
+      "kind": "objectReadable",
+      "resource": "rescue",
+      "key": "map",
+      "target": "commander"
+    },
+    {
+      "kind": "containerReady",
+      "resource": "ecs-web"
+    },
+    {
+      "kind": "alarm",
+      "resource": "alarm-health",
+      "value": "OK"
+    },
+    {
+      "kind": "notified",
+      "resource": "topic-ops",
+      "target": "alarm-health"
+    },
+    {
+      "kind": "architecture",
+      "resource": "edge-alb"
+    },
+    {
+      "kind": "hourlyBudget",
+      "resource": "edge-alb",
+      "value": "0.50"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "configureAlarm",
+    "configureTargetGroup",
+    "putFirewallRule",
+    "configureBucket",
+    "configureKey",
+    "configureTask",
+    "configureRds",
+    "advanceTime",
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position",
+    "createVpc",
+    "createSubnet",
+    "createRouteTable",
+    "associateRouteTable",
+    "createGateway",
+    "attachGateway",
+    "putRoute",
+    "createFirewall",
+    "associateNacl",
+    "removeFirewallRule",
+    "setPublicIp",
+    "setListener",
+    "probeNetwork",
+    "createBucket",
+    "putObject",
+    "deleteObject",
+    "restoreObject",
+    "readObject",
+    "transitionObjects",
+    "createEfs",
+    "mountEfs",
+    "createSnapshot",
+    "restoreSnapshot",
+    "createRds",
+    "connectDatabase",
+    "backupRds",
+    "restoreRds",
+    "failoverRds",
+    "createTable",
+    "putItem",
+    "getItem",
+    "createTargetGroup",
+    "createAlb",
+    "createAsg",
+    "scaleAsg",
+    "setLoad",
+    "putDns",
+    "createDistribution",
+    "configureDistribution",
+    "requestService",
+    "inspectMetrics",
+    "inspectLogs",
+    "inspectAudit",
+    "createTopic",
+    "createAlarm",
+    "createDashboard",
+    "reviewArchitecture",
+    "createFunction",
+    "invokeFunction",
+    "createSchedule",
+    "configureSchedule",
+    "ssmRun",
+    "patchFleet",
+    "deployStack",
+    "createRepository",
+    "pushImage",
+    "createCluster",
+    "registerTask",
+    "createEcsService",
+    "updateEcsService",
+    "createDeployment",
+    "configureDeployment",
+    "inspectContainers",
+    "createOrganization",
+    "putScp",
+    "createKey",
+    "encryptData",
+    "decryptData",
+    "replicateResource"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：先检查目标涉及的资源、依赖、日志与网络路径。",
+      "ja": "Mira：対象のリソース、依存関係、ログと経路を確認。",
+      "en": "Mira: Inspect target resources, dependencies, diagnostics and network paths."
+    },
+    {
+      "zh": "最终恢复依赖应用、网络、数据权限、容器、监控与安全；只修复一个服务不能通关。",
+      "ja": "最終復旧はアプリ、ネットワーク、権限、コンテナ、監視、安全性を組み合わせて判定。",
+      "en": "Final recovery combines application, networking, data access, containers, monitoring and safety; one repaired service is insufficient."
+    },
+    {
+      "zh": "Mira：可用操作顺序：configureAlarm → configureTargetGroup → putFirewallRule → configureBucket → configureKey → configureTask → configureRds → advanceTime",
+      "ja": "Mira：対応する操作順：configureAlarm → configureTargetGroup → putFirewallRule → configureBucket → configureKey → configureTask → configureRds → advanceTime",
+      "en": "Mira: Supported operation sequence: configureAlarm → configureTargetGroup → putFirewallRule → configureBucket → configureKey → configureTask → configureRds → advanceTime"
+    }
+  ],
+  "reference": [
+    {
+      "op": "configureAlarm",
+      "id": "alarm-health",
+      "args": {
+        "threshold": "0.5",
+        "function": "fn-recover"
+      },
+      "policies": []
+    },
+    {
+      "op": "configureTargetGroup",
+      "id": "tg-web",
+      "args": {
+        "healthPath": "/health"
+      },
+      "policies": []
+    },
+    {
+      "op": "putFirewallRule",
+      "id": "sg-db",
+      "args": {
+        "direction": "in",
+        "cidr": "10.0.0.0/16",
+        "protocol": "tcp",
+        "fromPort": "5432",
+        "toPort": "5432",
+        "number": "100",
+        "effect": "Allow"
+      },
+      "policies": []
+    },
+    {
+      "op": "configureBucket",
+      "id": "rescue",
+      "args": {
+        "blockPublicAccess": "true",
+        "publicRead": "false"
+      },
+      "policies": []
+    },
+    {
+      "op": "configureKey",
+      "id": "key-rescue",
+      "args": {
+        "principals": "commander",
+        "enabled": "true"
+      },
+      "policies": []
+    },
+    {
+      "op": "configureTask",
+      "id": "task-web",
+      "args": {
+        "port": "8080"
+      },
+      "policies": []
+    },
+    {
+      "op": "configureRds",
+      "id": "db-main",
+      "args": {
+        "multiAz": "true",
+        "standbySubnet": "subnet-a",
+        "backupDays": "7"
+      },
+      "policies": []
+    },
+    {
+      "op": "advanceTime",
+      "id": "",
+      "args": {
+        "seconds": "2"
+      },
+      "policies": []
+    }
+  ],
+  "xp": 400,
+  "coins": 50
+}

@@ -28,10 +28,10 @@ class CommandBus(private val missions: List<MissionDefinition>, initial: WorldSt
     }
     override suspend fun execute(command: SimulationCommand): SimulationResult = mutex.withLock {
         val old = state.value
-        val result = runCatching { apply(old,command) }
-        val message = result.exceptionOrNull()?.message ?: "OK"
-        var next = result.getOrDefault(old).copy(tick=old.tick+1, events=old.events + Event(old.tick+1,old.identity,command,result.isSuccess,message))
-        next = next.copy(cost=next.cost + hourlyCost(next)/3600)
+        val result = runCatching { SimulationRuntime.advance(apply(old,command),1) }
+        val message = result.exceptionOrNull()?.message ?: if(result.getOrNull()!!.observations.size>old.observations.size)result.getOrNull()!!.observations.last().detail else "OK"
+        val computed=result.getOrElse { old.copy(tick=old.tick+1) }
+        val next = computed.copy(events=old.events + Event(computed.tick,old.identity,command,result.isSuccess,message))
         save(next); state.value=next
         SimulationResult(result.isSuccess,message,next)
     }
@@ -43,14 +43,15 @@ class CommandBus(private val missions: List<MissionDefinition>, initial: WorldSt
             val m = mission ?: error("No mission")
             val v=MissionValidator().validate(m,w); require(v.passed) { "Objectives or safety constraints incomplete" }
             val first=!w.completed.containsKey(m.id)
-            val badge=if(m.order==6) "IAM Guardian" else if(m.order==7) "First Instance" else ""
+            val badge=mapOf(6 to "IAM Guardian",7 to "First Instance",18 to "Network Rescuer",24 to "Storage Defender",30 to "Database Survivor",36 to "Scaling Master",42 to "Monitoring Expert",48 to "Automation Hero",54 to "Container Commander",60 to "Cloud Architect")[m.order].orEmpty()
             return w.copy(completed=w.completed+(m.id to maxOf(w.completed[m.id]?:0,v.stars)),xp=w.xp+if(first)m.xp else 0,coins=w.coins+if(first)m.coins else 0,achievementTimes=if(badge.isNotEmpty() && !w.achievementTimes.containsKey(badge)) w.achievementTimes+(badge to w.tick) else w.achievementTimes)
         }
         if(c.op == "identity") { require(w.resources.any { it.id==arg("name") && it.type in listOf("user","role") }); return w.copy(identity=arg("name")) }
-        val action = if(c.op=="create") when(c.args["type"]) { "user" -> "iam:CreateUser"; "role" -> "iam:CreateRole"; "group" -> "iam:CreateGroup"; "instance" -> "ec2:RunInstances"; "volume" -> "ec2:CreateVolume"; else -> actionFor(c.op) } else actionFor(c.op)
-        val arn = "arn:aws:${action.substringBefore(':')}:${w.region}:${w.account}:${c.id}"
+        val action = SimulatorRegistry.action(c,w) ?: if(c.op=="create") when(c.args["type"]) { "user" -> "iam:CreateUser"; "role" -> "iam:CreateRole"; "group" -> "iam:CreateGroup"; "instance" -> "ec2:RunInstances"; "volume" -> "ec2:CreateVolume"; else -> actionFor(c.op) } else actionFor(c.op)
+        val arn = SimulatorRegistry.arn(c,w,action)
         require(Iam.allowed(w,w.identity,action,arn)) { "AccessDenied: $action $arn" }
         require(mission == null || c.op in mission.allowedActions) { "Operation unavailable in this mission" }
+        if(SimulatorRegistry.supports(c)) { SimulatorRegistry.authorizeRelated(c,w);return SimulatorRegistry.execute(c,w) }
         if(c.op=="region") { require(arg("value") in listOf("ap-northeast-1","us-east-1","eu-west-1")); return w.copy(region=arg("value")) }
         val r = w.resources.find { it.id==c.id }
         fun change(attrs: Map<String,String>): WorldState { require(r!=null) { "ResourceNotFound: ${c.id}" }; return w.copy(resources=w.resources.map { if(it.id==c.id) it.copy(attrs=it.attrs+attrs) else it }) }
@@ -81,7 +82,7 @@ class CommandBus(private val missions: List<MissionDefinition>, initial: WorldSt
                 return w.copy(resources=w.resources.map { if(it.id==c.id)it.copy(policies=c.policies) else it })
             }
             "mfa" -> { require(r?.type=="user"); return change(mapOf("mfa" to "true","loginSecure" to "true")) }
-            "trust" -> { require(r?.type=="role"); require(arg("service")=="ec2.amazonaws.com"); return change(mapOf("trust" to arg("service"))) }
+            "trust" -> { require(r?.type=="role"); require(arg("service") in listOf("ec2.amazonaws.com","lambda.amazonaws.com","ecs-tasks.amazonaws.com","eks.amazonaws.com")); return change(mapOf("trust" to arg("service"))) }
             "attachRole" -> { require(r?.type=="instance"); require(w.resources.any { it.id==arg("role") && it.type=="role" }); return change(mapOf("role" to arg("role"))) }
             "start","stop","reboot","terminate" -> {
                 require(r?.type=="instance") { "Instance not found" }
@@ -96,14 +97,14 @@ class CommandBus(private val missions: List<MissionDefinition>, initial: WorldSt
             "image" -> { require(r?.type=="instance" && r.attrs["state"] in listOf("running","stopped")); require(w.resources.none { it.id==arg("image") }); return w.copy(resources=w.resources+Resource(arg("image"),"image",w.region,mapOf("source" to c.id,"app" to r!!.attrs.getValue("app")))) }
             "resizeInstance" -> { require(r?.type=="instance" && r.attrs["state"]=="stopped"); require(arg("instanceType") in prices.keys); return change(mapOf("instanceType" to arg("instanceType"))) }
             "service" -> { require(r?.type=="instance" && r.attrs["state"]=="running"); require(arg("app") in listOf("running","stopped")); return change(mapOf("app" to arg("app"))) }
-            "delete" -> { require(r!=null); require(w.resources.none { other -> other.id!=r.id && other.attrs.values.contains(r.id) }) { "DependencyViolation" }; return w.copy(resources=w.resources.filterNot { it.id==c.id }) }
+            "delete" -> { require(r!=null); require(w.resources.none { other -> other.id!=r.id && (other.attrs.values.any { it.split(',').contains(r.id) } || other.routes.any { it.target==r.id } || other.objects.any { it.encryptionKey==r.id }) }) { "DependencyViolation" }; return w.copy(resources=w.resources.filterNot { it.id==c.id }) }
             "position" -> return change(mapOf("x" to arg("x").toFloat().toString(),"y" to arg("y").toFloat().toString()))
             else -> error("当前游戏版本暂不支持此 AWS 模拟操作。")
         }
     }
     companion object {
         val prices=mapOf("t3.micro" to 0.02,"t3.small" to 0.04,"m5.large" to 0.12)
-        fun hourlyCost(w: WorldState)=w.resources.sumOf { when(it.type) { "instance" -> if(it.attrs["state"]=="running") prices[it.attrs["instanceType"]]?:0.0 else 0.0; "volume" -> (it.attrs["size"]?.toDoubleOrNull()?:0.0)*0.0001; else -> 0.0 } }
+        fun hourlyCost(w: WorldState)=w.resources.sumOf { when(it.type) { "instance" -> if(it.attrs["state"]=="running") prices[it.attrs["instanceType"]]?:0.0 else 0.0; "volume" -> (it.attrs["size"]?.toDoubleOrNull()?:0.0)*0.0001; "nat" -> 0.045; "alb" -> 0.025+(it.attrs["load"]?.toDoubleOrNull()?:0.0)*0.000001; "rds" -> if(it.attrs["multiAz"]=="true")0.16 else 0.08; "efs" -> 0.002; "bucket" -> it.objects.sumOf { o -> o.content.length*if(o.storageClass=="GLACIER")0.000000001 else 0.00000001 }; "ecsService","deployment" -> (it.attrs["readyCount"]?.toDoubleOrNull()?:0.0)*0.01; else -> 0.0 } }
         fun actionFor(op: String)= when(op) { "policy" -> "iam:PutUserPolicy"; "mfa" -> "iam:EnableMFADevice"; "trust" -> "iam:UpdateAssumeRolePolicy"; "attachRole" -> "iam:PassRole"; "create" -> "sim:CreateResource"; "region" -> "sim:SelectRegion"; "start" -> "ec2:StartInstances"; "stop" -> "ec2:StopInstances"; "terminate" -> "ec2:TerminateInstances"; "reboot" -> "ec2:RebootInstances"; else -> "sim:$op" }
     }
 }

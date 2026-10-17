@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "disclaimer": "教学模拟价格，不代表 AWS 当前实际报价。",
+  "hourly": {
+    "t3.micro": 0.02,
+    "t3.small": 0.04,
+    "m5.large": 0.12,
+    "nat": 0.045,
+    "albBase": 0.025,
+    "rdsSingleAz": 0.08,
+    "rdsMultiAz": 0.16,
+    "efs": 0.002,
+    "containerReplica": 0.01
+  },
+  "volumeGiBHour": 0.0001,
+  "albRequestHour": 1e-06,
+  "objectCharacterHour": {
+    "STANDARD": 1e-08,
+    "GLACIER": 1e-09
+  }
+}

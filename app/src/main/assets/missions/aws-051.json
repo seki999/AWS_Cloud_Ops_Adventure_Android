@@ -1,0 +1,519 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-051",
+  "chapterId": "chapter-09",
+  "order": 51,
+  "playable": true,
+  "title": {
+    "zh": "无法启动的容器",
+    "ja": "起動できないコンテナ",
+    "en": "Container will not start"
+  },
+  "story": {
+    "zh": "2035 年，Nova：Shadow Fault 制造了新的故障。任务：无法启动的容器。诊断资源并恢复云城。",
+    "ja": "2035年、Nova：Shadow Fault が障害を発生。任務：起動できないコンテナ。リソースを調べ都市を復旧せよ。",
+    "en": "2035. Nova: Shadow Fault has caused another incident. Mission: Container will not start. Diagnose the resources and restore the city."
+  },
+  "lesson": {
+    "zh": "镜像标签、任务角色信任和拉取权限都可能阻止任务启动；逐项检查故障原因。",
+    "ja": "イメージ、ロール信頼、取得権限を順に調査。いずれも起動を阻止します。",
+    "en": "Image tags, execution-role trust and image-pull permissions can each prevent tasks from starting."
+  },
+  "services": [
+    "ECR",
+    "ECS",
+    "EKS"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a",
+        "routeTable": "rt-public",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-c",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.2.0/24",
+        "az": "ap-northeast-1c",
+        "routeTable": "rt-private",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "rt-public",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        },
+        {
+          "cidr": "0.0.0.0/0",
+          "target": "igw-main"
+        }
+      ]
+    },
+    {
+      "id": "rt-private",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        }
+      ]
+    },
+    {
+      "id": "igw-main",
+      "type": "igw",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "attached": "true"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "10.0.0.0/16",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "tcp",
+          "fromPort": 443,
+          "toPort": 443,
+          "number": 200,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "sg-db",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "10.0.0.0/16",
+          "protocol": "tcp",
+          "fromPort": 5432,
+          "toPort": 5432,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "acl-main",
+      "type": "nacl",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.1.10",
+        "publicIp": "198.51.100.10",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-private",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1c",
+        "ami": "ami-base",
+        "subnet": "subnet-c",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.2.10",
+        "publicIp": "",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "repo-rescue",
+      "type": "repository",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "image:v1": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "port:v1": "8080"
+      },
+      "policies": []
+    },
+    {
+      "id": "task-role",
+      "type": "role",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "trust": "ec2.amazonaws.com"
+      },
+      "policies": []
+    },
+    {
+      "id": "eks-role",
+      "type": "role",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "trust": "eks.amazonaws.com"
+      },
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ecs-core",
+      "type": "ecsCluster",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "active"
+      },
+      "policies": []
+    },
+    {
+      "id": "task-web",
+      "type": "task",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "image": "repo-rescue:missing",
+        "role": "task-role",
+        "port": "8080",
+        "environment": "APP_MODE=production"
+      },
+      "policies": []
+    },
+    {
+      "id": "ecs-web",
+      "type": "ecsService",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cluster": "ecs-core",
+        "task": "task-web",
+        "desired": "2"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "authored-fault-051"
+  ],
+  "objectives": [
+    {
+      "kind": "containerReady",
+      "resource": "ecs-web"
+    },
+    {
+      "kind": "observed",
+      "resource": "ecs-web",
+      "key": "containers"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "inspectContainers",
+    "configureTask",
+    "trust",
+    "policy",
+    "create",
+    "mfa",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position",
+    "createVpc",
+    "createSubnet",
+    "createRouteTable",
+    "associateRouteTable",
+    "createGateway",
+    "attachGateway",
+    "putRoute",
+    "createFirewall",
+    "associateNacl",
+    "putFirewallRule",
+    "removeFirewallRule",
+    "setPublicIp",
+    "setListener",
+    "probeNetwork",
+    "createBucket",
+    "configureBucket",
+    "putObject",
+    "deleteObject",
+    "restoreObject",
+    "readObject",
+    "transitionObjects",
+    "createEfs",
+    "mountEfs",
+    "createSnapshot",
+    "restoreSnapshot",
+    "createRds",
+    "configureRds",
+    "connectDatabase",
+    "backupRds",
+    "restoreRds",
+    "failoverRds",
+    "createTable",
+    "putItem",
+    "getItem",
+    "createTargetGroup",
+    "configureTargetGroup",
+    "createAlb",
+    "createAsg",
+    "scaleAsg",
+    "setLoad",
+    "putDns",
+    "createDistribution",
+    "configureDistribution",
+    "requestService",
+    "advanceTime",
+    "inspectMetrics",
+    "inspectLogs",
+    "inspectAudit",
+    "createTopic",
+    "createAlarm",
+    "configureAlarm",
+    "createDashboard",
+    "reviewArchitecture",
+    "createFunction",
+    "invokeFunction",
+    "createSchedule",
+    "configureSchedule",
+    "ssmRun",
+    "patchFleet",
+    "deployStack",
+    "createRepository",
+    "pushImage",
+    "createCluster",
+    "registerTask",
+    "createEcsService",
+    "updateEcsService",
+    "createDeployment",
+    "configureDeployment",
+    "createOrganization",
+    "putScp",
+    "createKey",
+    "configureKey",
+    "encryptData",
+    "decryptData",
+    "replicateResource"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：先检查目标涉及的资源、依赖、日志与网络路径。",
+      "ja": "Mira：対象のリソース、依存関係、ログと経路を確認。",
+      "en": "Mira: Inspect target resources, dependencies, diagnostics and network paths."
+    },
+    {
+      "zh": "镜像标签、任务角色信任和拉取权限都可能阻止任务启动；逐项检查故障原因。",
+      "ja": "イメージ、ロール信頼、取得権限を順に調査。いずれも起動を阻止します。",
+      "en": "Image tags, execution-role trust and image-pull permissions can each prevent tasks from starting."
+    },
+    {
+      "zh": "Mira：可用操作顺序：inspectContainers → configureTask → trust → policy",
+      "ja": "Mira：対応する操作順：inspectContainers → configureTask → trust → policy",
+      "en": "Mira: Supported operation sequence: inspectContainers → configureTask → trust → policy"
+    }
+  ],
+  "reference": [
+    {
+      "op": "inspectContainers",
+      "id": "ecs-web",
+      "args": {},
+      "policies": []
+    },
+    {
+      "op": "configureTask",
+      "id": "task-web",
+      "args": {
+        "image": "repo-rescue:v1"
+      },
+      "policies": []
+    },
+    {
+      "op": "trust",
+      "id": "task-role",
+      "args": {
+        "service": "ecs-tasks.amazonaws.com"
+      },
+      "policies": []
+    },
+    {
+      "op": "policy",
+      "id": "task-role",
+      "args": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "ecr:BatchGetImage"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    }
+  ],
+  "xp": 350,
+  "coins": 50
+}

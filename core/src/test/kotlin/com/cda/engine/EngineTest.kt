@@ -11,8 +11,8 @@ class EngineTest {
         val root=File("../app/src/main/assets/missions")
         return root.listFiles()!!.sortedBy { it.name }.map { codec.decodeFromString(it.readText()) }
     }
-    @Test fun allTwelveMissionsAreStateBasedAndReplayable() = runTest {
-        val missions=missions(); assertEquals(12,missions.size)
+    @Test fun allSixtyMissionsAreStateBasedAndReplayable() = runTest {
+        val missions=missions(); assertEquals(60,missions.size)
         val bus=CommandBus(missions)
         for(m in missions) {
             bus.resetMission(m.id)

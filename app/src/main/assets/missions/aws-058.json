@@ -1,0 +1,585 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-058",
+  "chapterId": "chapter-10",
+  "order": 58,
+  "playable": true,
+  "title": {
+    "zh": "跨区域灾难恢复",
+    "ja": "リージョン間災害復旧",
+    "en": "Cross-region disaster recovery"
+  },
+  "story": {
+    "zh": "2035 年，Nova：Shadow Fault 制造了新的故障。任务：跨区域灾难恢复。诊断资源并恢复云城。",
+    "ja": "2035年、Nova：Shadow Fault が障害を発生。任務：リージョン間災害復旧。リソースを調べ都市を復旧せよ。",
+    "en": "2035. Nova: Shadow Fault has caused another incident. Mission: Cross-region disaster recovery. Diagnose the resources and restore the city."
+  },
+  "lesson": {
+    "zh": "复制对象与备份到另一区域，再在目标区域子网恢复数据库；不能把旧区域网络直接搬用。",
+    "ja": "別リージョンへデータを複製し、復旧先のサブネットで DB を復元。旧ネットワークは流用不可。",
+    "en": "Copy objects and backups across regions, then restore into destination subnets. Source-region networking is not portable."
+  },
+  "services": [
+    "Organizations",
+    "KMS",
+    "VPC",
+    "RDS",
+    "S3",
+    "CloudWatch"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a",
+        "routeTable": "rt-public",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-c",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.2.0/24",
+        "az": "ap-northeast-1c",
+        "routeTable": "rt-private",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "rt-public",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        },
+        {
+          "cidr": "0.0.0.0/0",
+          "target": "igw-main"
+        }
+      ]
+    },
+    {
+      "id": "rt-private",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        }
+      ]
+    },
+    {
+      "id": "igw-main",
+      "type": "igw",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "attached": "true"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "10.0.0.0/16",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "tcp",
+          "fromPort": 443,
+          "toPort": 443,
+          "number": 200,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "sg-db",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "10.0.0.0/16",
+          "protocol": "tcp",
+          "fromPort": 5432,
+          "toPort": 5432,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "acl-main",
+      "type": "nacl",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.1.10",
+        "publicIp": "198.51.100.10",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-private",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1c",
+        "ami": "ami-base",
+        "subnet": "subnet-c",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.2.10",
+        "publicIp": "",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "rescue",
+      "type": "bucket",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "versioning": "true",
+        "blockPublicAccess": "true",
+        "publicRead": "false"
+      },
+      "policies": [],
+      "objects": [
+        {
+          "version": "v1",
+          "key": "map",
+          "content": "city-restored",
+          "tick": 0,
+          "deleted": false,
+          "storageClass": "STANDARD",
+          "encryptionKey": ""
+        }
+      ]
+    },
+    {
+      "id": "backup-safe",
+      "type": "dbBackup",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "subnet": "subnet-c",
+        "sg": "sg-db",
+        "privateIp": "10.0.2.20",
+        "state": "available",
+        "listenPorts": "5432",
+        "engine": "postgres",
+        "data": "patients-safe",
+        "multiAz": "false",
+        "backupDays": "0",
+        "failovers": "0",
+        "source": "db-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "vpc-dr",
+      "type": "vpc",
+      "region": "us-east-1",
+      "attrs": {
+        "cidr": "172.20.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-dr",
+      "type": "subnet",
+      "region": "us-east-1",
+      "attrs": {
+        "vpc": "vpc-dr",
+        "cidr": "172.20.1.0/24",
+        "az": "us-east-1a",
+        "routeTable": "rt-dr"
+      },
+      "policies": []
+    },
+    {
+      "id": "rt-dr",
+      "type": "routeTable",
+      "region": "us-east-1",
+      "attrs": {
+        "vpc": "vpc-dr"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "172.20.0.0/16",
+          "target": "local"
+        }
+      ]
+    },
+    {
+      "id": "sg-dr",
+      "type": "sg",
+      "region": "us-east-1",
+      "attrs": {
+        "vpc": "vpc-dr"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "172.20.0.0/16",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "i-dr",
+      "type": "instance",
+      "region": "us-east-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "us-east-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-dr",
+        "sg": "sg-dr",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "172.20.1.10",
+        "listenPorts": "80,443"
+      },
+      "policies": []
+    }
+  ],
+  "faults": [
+    "authored-fault-058"
+  ],
+  "objectives": [
+    {
+      "kind": "replica",
+      "resource": "rescue-dr",
+      "value": "us-east-1",
+      "target": "rescue"
+    },
+    {
+      "kind": "objectContent",
+      "resource": "rescue-dr",
+      "key": "map",
+      "value": "city-restored"
+    },
+    {
+      "kind": "database",
+      "resource": "db-dr",
+      "target": "i-dr"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "replicateResource",
+    "region",
+    "restoreRds",
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position",
+    "createVpc",
+    "createSubnet",
+    "createRouteTable",
+    "associateRouteTable",
+    "createGateway",
+    "attachGateway",
+    "putRoute",
+    "createFirewall",
+    "associateNacl",
+    "putFirewallRule",
+    "removeFirewallRule",
+    "setPublicIp",
+    "setListener",
+    "probeNetwork",
+    "createBucket",
+    "configureBucket",
+    "putObject",
+    "deleteObject",
+    "restoreObject",
+    "readObject",
+    "transitionObjects",
+    "createEfs",
+    "mountEfs",
+    "createSnapshot",
+    "restoreSnapshot",
+    "createRds",
+    "configureRds",
+    "connectDatabase",
+    "backupRds",
+    "failoverRds",
+    "createTable",
+    "putItem",
+    "getItem",
+    "createTargetGroup",
+    "configureTargetGroup",
+    "createAlb",
+    "createAsg",
+    "scaleAsg",
+    "setLoad",
+    "putDns",
+    "createDistribution",
+    "configureDistribution",
+    "requestService",
+    "advanceTime",
+    "inspectMetrics",
+    "inspectLogs",
+    "inspectAudit",
+    "createTopic",
+    "createAlarm",
+    "configureAlarm",
+    "createDashboard",
+    "reviewArchitecture",
+    "createFunction",
+    "invokeFunction",
+    "createSchedule",
+    "configureSchedule",
+    "ssmRun",
+    "patchFleet",
+    "deployStack",
+    "createRepository",
+    "pushImage",
+    "createCluster",
+    "registerTask",
+    "configureTask",
+    "createEcsService",
+    "updateEcsService",
+    "createDeployment",
+    "configureDeployment",
+    "inspectContainers",
+    "createOrganization",
+    "putScp",
+    "createKey",
+    "configureKey",
+    "encryptData",
+    "decryptData"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：先检查目标涉及的资源、依赖、日志与网络路径。",
+      "ja": "Mira：対象のリソース、依存関係、ログと経路を確認。",
+      "en": "Mira: Inspect target resources, dependencies, diagnostics and network paths."
+    },
+    {
+      "zh": "复制对象与备份到另一区域，再在目标区域子网恢复数据库；不能把旧区域网络直接搬用。",
+      "ja": "別リージョンへデータを複製し、復旧先のサブネットで DB を復元。旧ネットワークは流用不可。",
+      "en": "Copy objects and backups across regions, then restore into destination subnets. Source-region networking is not portable."
+    },
+    {
+      "zh": "Mira：可用操作顺序：replicateResource → replicateResource → region → restoreRds",
+      "ja": "Mira：対応する操作順：replicateResource → replicateResource → region → restoreRds",
+      "en": "Mira: Supported operation sequence: replicateResource → replicateResource → region → restoreRds"
+    }
+  ],
+  "reference": [
+    {
+      "op": "replicateResource",
+      "id": "rescue-dr",
+      "args": {
+        "source": "rescue",
+        "region": "us-east-1"
+      },
+      "policies": []
+    },
+    {
+      "op": "replicateResource",
+      "id": "backup-dr",
+      "args": {
+        "source": "backup-safe",
+        "region": "us-east-1"
+      },
+      "policies": []
+    },
+    {
+      "op": "region",
+      "id": "",
+      "args": {
+        "value": "us-east-1"
+      },
+      "policies": []
+    },
+    {
+      "op": "restoreRds",
+      "id": "db-dr",
+      "args": {
+        "backup": "backup-dr",
+        "subnet": "subnet-dr",
+        "sg": "sg-dr",
+        "privateIp": "172.20.1.20"
+      },
+      "policies": []
+    }
+  ],
+  "xp": 375,
+  "coins": 50
+}

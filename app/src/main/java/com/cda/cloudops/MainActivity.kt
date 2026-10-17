@@ -18,6 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +53,8 @@ import dagger.hilt.android.AndroidEntryPoint
                         Column(Modifier.verticalScroll(rememberScrollState())) {
                             Spacer(Modifier.height(20.dp)); Text(t("2035 · 云城等待救援","2035 · 都市を救え","2035 · A city awaits rescue"),style=MaterialTheme.typography.headlineMedium)
                             Text(t("Commander Nova：Shadow Fault 切断了城市基础设施。检查资源，建立假设，执行修复。","Nova：Shadow Fault が都市を攻撃。リソースを調べ、仮説を立て、復旧せよ。","Commander Nova: Shadow Fault has attacked. Inspect resources, form a hypothesis, restore the city."),modifier=Modifier.padding(vertical=16.dp))
-                            Text("XP ${w.xp}   ◈ ${w.coins}   ${w.completed.size}/12")
+                            Text("XP ${w.xp}   ◈ ${w.coins}   ${w.completed.size}/${vm.missions.size}")
+                            Text(listOf("Cloud Trainee","Junior Cloud Engineer","Cloud Administrator","Network Engineer","Database Operator","Reliability Engineer","Monitoring Specialist","Automation Engineer","Container Engineer","Cloud Commander")[(w.completed.size/6).coerceAtMost(9)])
                             Button(onClick={ if(w.missionId.isEmpty()) vm.start("aws-001"); nav.navigate("console") }) { Text(t("开始 / 继续游戏","開始 / 続ける","Start / Continue")) }
                             OutlinedButton(onClick={nav.navigate("map")}) { Text(t("章节地图","チャプターマップ","Chapter map")) }
                             OutlinedButton(onClick={vm.start("lab");nav.navigate("console")}) { Text(t("自由实验室","自由ラボ","Sandbox lab")) }
@@ -60,9 +64,8 @@ import dagger.hilt.android.AndroidEntryPoint
                     }
                     composable("map") {
                         LazyColumn {
-                            item { MapCanvas(w) }
+                            item { MapCanvas(w,lang) }
                             items(vm.missions) { m -> val unlocked=m.order==1 || w.completed.containsKey("aws-%03d".format(m.order-1)); OutlinedButton(enabled=unlocked,onClick={vm.start(m.id);nav.navigate("console")},modifier=Modifier.fillMaxWidth()) { Text("${m.id} · ${m.title.get(lang)}  ${if(unlocked)"★".repeat(w.completed[m.id]?:0) else "🔒"}") } }
-                            items((3..10).toList()) { Text(t("第 $it 章 · 规划中，尚不可玩","第 $it 章 · 計画中","Chapter $it · planned, unavailable"),modifier=Modifier.padding(12.dp)) }
                         }
                     }
                     composable("console") { Console(vm,w,lang,output) }
@@ -76,13 +79,35 @@ import dagger.hilt.android.AndroidEntryPoint
     }
 }
 
-@Composable private fun MapCanvas(w: WorldState) {
+private val districts=listOf(
+    Text3("云端觉醒 · 身份中心","クラウド覚醒 · ID センター","Awakening · Identity hub"),Text3("服务器基地 · 数据中心","サーバー基地 · データセンター","Server base · Data center"),
+    Text3("网络迷宫 · 网络中心","ネットワーク迷宮 · 網センター","Network maze · Network hub"),Text3("数据守护 · 存储中心","データ守護 · ストレージ","Data guard · Storage hub"),
+    Text3("数据库危机 · 数据库中心","DB 危機 · データベース","Database crisis · DB hub"),Text3("流量风暴 · 边缘网关","トラフィック嵐 · エッジ","Traffic storm · Edge gate"),
+    Text3("监控中心","監視センター","Monitoring center"),Text3("自动化中心","自動化センター","Automation center"),
+    Text3("容器基地","コンテナ基地","Container base"),Text3("最终云战役 · 指挥塔","最終決戦 · 司令塔","Final battle · Command tower"))
+
+/** Chapter i is unlocked when the last mission of the previous chapter is complete. */
+private fun chapterUnlocked(w: WorldState,i: Int)=i==0 || w.completed.containsKey("aws-%03d".format(i*6))
+private fun chapterStars(w: WorldState,i: Int)=(1..6).sumOf { w.completed["aws-%03d".format(i*6+it)] ?: 0 }
+
+@Composable private fun MapCanvas(w: WorldState,lang: String) {
     var zoom by remember { mutableFloatStateOf(1f) }; var pan by remember { mutableStateOf(Offset.Zero) }
-    Canvas(Modifier.fillMaxWidth().height(170.dp).background(Color(0xFF0C1C30),RoundedCornerShape(16.dp)).pointerInput(Unit) { detectTransformGestures { _,p,z,_ -> zoom=(zoom*z).coerceIn(0.6f,3f);pan+=p } }) {
-        val points=(0..9).map { i -> Offset(40f+(i%5)*(size.width-80)/4,50f+(i/5)*90f)*zoom+pan }
-        points.zipWithNext().forEach { (a,b) -> drawLine(Color(0xFF31536F),a,b,3f) }
-        points.forEachIndexed { i,p -> drawCircle(if(i<2)Color(0xFF6CE9D2) else Color(0xFF3E5066),15f,p); if(w.completed.keys.any { it.substringAfter('-').toIntOrNull()?.let { n -> (n-1)/6==i }==true }) drawCircle(Color(0xFFFFC46B),6f,p) }
+    val labels=rememberTextMeasurer()
+    Column {
+        Row { TextButton(onClick={zoom=1f;pan=Offset.Zero}) { Text(if(lang=="zh")"重置视图" else if(lang=="ja")"表示リセット" else "Reset view") } }
+        Canvas(Modifier.fillMaxWidth().height(300.dp).clipToBounds().background(Color(0xFF0C1C30),RoundedCornerShape(16.dp)).pointerInput(Unit) { detectTransformGestures { _,p,z,_ -> zoom=(zoom*z).coerceIn(0.6f,3f);pan+=p } }) {
+            val points=(0..9).map { i -> Offset(size.width*(if(i%2==0)0.18f else 0.58f),40f+i*(size.height-80)/9)*zoom+pan }
+            points.zipWithNext().forEachIndexed { i,(a,b) -> drawLine(if(chapterUnlocked(w,i+1))Color(0xFF6CE9D2) else Color(0xFF31536F),a,b,3f) }
+            points.forEachIndexed { i,p ->
+                val open=chapterUnlocked(w,i); val stars=chapterStars(w,i)
+                drawRect(if(open)Color(0xFF14394A) else Color(0xFF1B2533),p-Offset(26f,20f),androidx.compose.ui.geometry.Size(52f,40f))
+                drawRect(if(stars==18)Color(0xFFFFC46B) else if(open)Color(0xFF6CE9D2) else Color(0xFF3E5066),p-Offset(26f,20f),androidx.compose.ui.geometry.Size(52f,40f),style=androidx.compose.ui.graphics.drawscope.Stroke(3f))
+                val label="${i+1}. ${districts[i].get(lang)}  ${if(open)"★$stars/18" else "🔒"}"
+                drawText(labels,label,p+Offset(-26f,24f),style=androidx.compose.ui.text.TextStyle(color=if(open)Color(0xFFE6F4F1) else Color(0xFF7A8899),fontSize=11.sp))
+            }
+        }
     }
+    Spacer(Modifier.height(8.dp))
 }
 
 @Composable private fun Console(vm: GameViewModel,w: WorldState,lang: String,output: String) {
@@ -98,11 +123,16 @@ import dagger.hilt.android.AndroidEntryPoint
         items(w.resources.filter { (it.id+it.type).contains(search,true) },key={it.id}) { r ->
             Card(onClick={id=r.id},modifier=Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text("${r.type.uppercase()} / ${r.id}",color=MaterialTheme.colorScheme.primary);Text(r.attrs.entries.joinToString(" · ") { "${it.key}=${it.value}" },style=MaterialTheme.typography.bodySmall);if(r.policies.isNotEmpty())Text(r.policies.toString(),style=MaterialTheme.typography.bodySmall)
                 if(r.type=="instance")Row { listOf("start","stop","reboot","terminate").forEach { action -> TextButton(enabled=if(action=="start")r.attrs["state"]=="stopped" else r.attrs["state"]=="running",onClick={vm.execute(SimulationCommand(action,r.id))}) { Text(action,fontSize=11.sp) } } }
+                if(r.rules.isNotEmpty())Text(r.rules.joinToString("\n") { "${it.number} ${it.direction} ${it.protocol} ${it.fromPort}-${it.toPort} ${it.cidr} ${it.effect}" },style=MaterialTheme.typography.bodySmall)
+                if(r.routes.isNotEmpty())Text(r.routes.joinToString("\n") { "${it.cidr} → ${it.target}" },style=MaterialTheme.typography.bodySmall)
+                if(r.objects.isNotEmpty())Text(r.objects.joinToString("\n") { "${it.key} ${it.version} ${if(it.deleted)"[delete marker]" else it.storageClass} ${it.encryptionKey}" },style=MaterialTheme.typography.bodySmall)
             } }
         }
         item {
             Text(t("操作面板","操作パネル","Actions"),style=MaterialTheme.typography.titleLarge)
-            Row(Modifier.horizontalScroll(rememberScrollState())) { mission.allowedActions.forEach { a -> FilterChip(selected=op==a,onClick={op=a},label={Text(a)},modifier=Modifier.padding(end=4.dp)) } }
+            OutlinedTextField(value=op,onValueChange={op=it},label={Text(t("查找 / 选择操作","操作を検索 / 選択","Find / select operation"))},modifier=Modifier.fillMaxWidth())
+            Row(Modifier.horizontalScroll(rememberScrollState())) { mission.allowedActions.filter { op.isEmpty() || it.contains(op,true) }.forEach { a -> FilterChip(selected=op==a,onClick={op=a},label={Text(a)},modifier=Modifier.padding(end=4.dp)) } }
+            SimulatorRegistry.operations[op]?.let { spec -> Text("${t("必填参数","必須パラメータ","Required parameters")}: ${spec.parameters.ifEmpty { "—" }}\n${t("可选参数","任意パラメータ","Optional parameters")}: ${spec.optional.joinToString().ifEmpty { "—" }}",style=MaterialTheme.typography.bodyMedium) }
             OutlinedTextField(value=id,onValueChange={id=it},label={Text(t("资源 ID","リソース ID","Resource ID"))},modifier=Modifier.fillMaxWidth())
             OutlinedTextField(value=args,onValueChange={args=it},label={Text(t("参数 key=value，每行一项","引数 key=value、1行1項目","Parameters key=value, one per line"))},minLines=2,modifier=Modifier.fillMaxWidth())
             if(op=="policy") { OutlinedTextField(value=policyAction,onValueChange={policyAction=it},label={Text("Action")}); OutlinedTextField(value=policyResource,onValueChange={policyResource=it},label={Text("Resource")}) }
@@ -112,7 +142,12 @@ import dagger.hilt.android.AndroidEntryPoint
             Text("${t("教学虚拟成本","教育用仮想コスト","Educational cost")}: %.5f · %.3f/h".format(w.cost,CommandBus.hourlyCost(w)))
             Row { Button(onClick={vm.execute(SimulationCommand("claim"))}) { Text(t("检查 / 领取奖励","確認 / 報酬","Check / Claim")) }; TextButton(onClick={vm.execute(SimulationCommand("hint"))}) { Text("Mira (${w.hints}/3)") }; TextButton(onClick={vm.start(mission.id)}) { Text(t("重置","リセット","Reset")) } }
             if(w.hints>0)Text(mission.hints[(w.hints-1).coerceAtMost(2)].get(lang))
-            if(report.passed) { Text("${t("任务完成","任務完了","Mission complete")} · ${report.score}/100 ${"★".repeat(report.stars)}"); Text(mission.lesson.get(lang)); if(w.completed.containsKey(mission.id) && mission.order<12)Button(onClick={vm.start("aws-%03d".format(mission.order+1))}) { Text(t("下一关","次へ","Next mission")) } }
+            if(report.passed) { Text("${t("任务完成","任務完了","Mission complete")} · ${report.score}/100 ${"★".repeat(report.stars)}"); Text(mission.lesson.get(lang)); if(w.completed.containsKey(mission.id) && mission.id!="lab" && mission.order<vm.missions.size)Button(onClick={vm.start("aws-%03d".format(mission.order+1))}) { Text(t("下一关","次へ","Next mission")) } }
+            Text(t("监控 / 通知","監視 / 通知","Monitoring / notifications"),style=MaterialTheme.typography.titleMedium)
+            Telemetry(w,id.ifEmpty { "i-web" })
+            w.resources.filter { it.type=="alarm" }.forEach { Text("${it.id}: ${it.attrs["state"]} · ${it.attrs["metric"]} ${it.attrs["comparison"]} ${it.attrs["threshold"]}") }
+            w.notifications.takeLast(5).forEach { Text("${it.tick} · SNS ${it.topic} · ${it.alarm}: ${it.message}") }
+            w.observations.takeLast(3).forEach { Text("${it.tick} · ${it.kind} ${it.resource}\n${it.detail}",style=MaterialTheme.typography.bodySmall) }
             Text(t("审计事件","監査イベント","Audit events"),style=MaterialTheme.typography.titleMedium)
             w.events.takeLast(8).reversed().forEach { Text("${it.tick} · ${it.identity} · ${it.command.op} ${it.command.id} · ${it.message}",style=MaterialTheme.typography.bodySmall) }
             Spacer(Modifier.height(24.dp))

@@ -1,0 +1,486 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-024",
+  "chapterId": "chapter-04",
+  "order": 24,
+  "playable": true,
+  "title": {
+    "zh": "保护数据的最后防线",
+    "ja": "データ保護の最後の砦",
+    "en": "Data protection perimeter"
+  },
+  "story": {
+    "zh": "2035 年，Nova：Shadow Fault 制造了新的故障。任务：保护数据的最后防线。诊断资源并恢复云城。",
+    "ja": "2035年、Nova：Shadow Fault が障害を発生。任務：データ保護の最後の砦。リソースを調べ都市を復旧せよ。",
+    "en": "2035. Nova: Shadow Fault has caused another incident. Mission: Data protection perimeter. Diagnose the resources and restore the city."
+  },
+  "lesson": {
+    "zh": "快照保存当时的磁盘数据；恢复生成独立卷。对象版本化保护后续写入。",
+    "ja": "スナップショットは時点のデータ。復元は独立ボリュームを作成します。",
+    "en": "A snapshot captures point-in-time data. Restore creates an independent volume; versioning protects object writes."
+  },
+  "services": [
+    "S3",
+    "EFS",
+    "EBS"
+  ],
+  "initialResources": [
+    {
+      "id": "commander",
+      "type": "user",
+      "region": "ap-northeast-1",
+      "attrs": {},
+      "policies": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "*"
+          ],
+          "resources": [
+            "*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpc-main",
+      "type": "vpc",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "cidr": "10.0.0.0/16"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-a",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.1.0/24",
+        "az": "ap-northeast-1a",
+        "routeTable": "rt-public",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "subnet-c",
+      "type": "subnet",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "cidr": "10.0.2.0/24",
+        "az": "ap-northeast-1c",
+        "routeTable": "rt-private",
+        "nacl": "acl-main"
+      },
+      "policies": []
+    },
+    {
+      "id": "rt-public",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        },
+        {
+          "cidr": "0.0.0.0/0",
+          "target": "igw-main"
+        }
+      ]
+    },
+    {
+      "id": "rt-private",
+      "type": "routeTable",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "routes": [
+        {
+          "cidr": "10.0.0.0/16",
+          "target": "local"
+        }
+      ]
+    },
+    {
+      "id": "igw-main",
+      "type": "igw",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main",
+        "attached": "true"
+      },
+      "policies": []
+    },
+    {
+      "id": "sg-web",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "10.0.0.0/16",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "tcp",
+          "fromPort": 443,
+          "toPort": 443,
+          "number": 200,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "sg-db",
+      "type": "sg",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "10.0.0.0/16",
+          "protocol": "tcp",
+          "fromPort": 5432,
+          "toPort": 5432,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "acl-main",
+      "type": "nacl",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "vpc": "vpc-main"
+      },
+      "policies": [],
+      "rules": [
+        {
+          "direction": "in",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        },
+        {
+          "direction": "out",
+          "cidr": "0.0.0.0/0",
+          "protocol": "all",
+          "fromPort": 0,
+          "toPort": 65535,
+          "number": 100,
+          "effect": "Allow"
+        }
+      ]
+    },
+    {
+      "id": "ami-base",
+      "type": "image",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "app": "running"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-web",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1a",
+        "ami": "ami-base",
+        "subnet": "subnet-a",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.1.10",
+        "publicIp": "198.51.100.10",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "i-private",
+      "type": "instance",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "state": "running",
+        "app": "running",
+        "system": "ok",
+        "instanceType": "t3.micro",
+        "az": "ap-northeast-1c",
+        "ami": "ami-base",
+        "subnet": "subnet-c",
+        "sg": "sg-web",
+        "cpu": "15",
+        "memory": "25",
+        "privateIp": "10.0.2.10",
+        "publicIp": "",
+        "listenPorts": "80,443",
+        "healthPath": "/health",
+        "managed": "true",
+        "load": "50"
+      },
+      "policies": []
+    },
+    {
+      "id": "vol-data",
+      "type": "volume",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "size": "20",
+        "fsSize": "20",
+        "used": "5",
+        "az": "ap-northeast-1a",
+        "instance": "i-web",
+        "data": "city-data"
+      },
+      "policies": []
+    },
+    {
+      "id": "rescue",
+      "type": "bucket",
+      "region": "ap-northeast-1",
+      "attrs": {
+        "versioning": "false",
+        "blockPublicAccess": "true",
+        "publicRead": "false"
+      },
+      "policies": [],
+      "objects": []
+    }
+  ],
+  "faults": [
+    "authored-fault-024"
+  ],
+  "objectives": [
+    {
+      "kind": "backup",
+      "resource": "snap-safe",
+      "target": "vol-data",
+      "value": "city-data"
+    },
+    {
+      "kind": "attribute",
+      "resource": "vol-restored",
+      "key": "data",
+      "value": "city-data"
+    },
+    {
+      "kind": "attribute",
+      "resource": "rescue",
+      "key": "versioning",
+      "value": "true"
+    },
+    {
+      "kind": "objectContent",
+      "resource": "rescue",
+      "key": "backup",
+      "value": "city-data"
+    }
+  ],
+  "constraints": [],
+  "allowedActions": [
+    "createSnapshot",
+    "restoreSnapshot",
+    "configureBucket",
+    "putObject",
+    "create",
+    "policy",
+    "mfa",
+    "trust",
+    "attachRole",
+    "region",
+    "start",
+    "stop",
+    "reboot",
+    "terminate",
+    "resizeVolume",
+    "growFilesystem",
+    "attachVolume",
+    "image",
+    "resizeInstance",
+    "service",
+    "delete",
+    "position",
+    "createVpc",
+    "createSubnet",
+    "createRouteTable",
+    "associateRouteTable",
+    "createGateway",
+    "attachGateway",
+    "putRoute",
+    "createFirewall",
+    "associateNacl",
+    "putFirewallRule",
+    "removeFirewallRule",
+    "setPublicIp",
+    "setListener",
+    "probeNetwork",
+    "createBucket",
+    "deleteObject",
+    "restoreObject",
+    "readObject",
+    "transitionObjects",
+    "createEfs",
+    "mountEfs",
+    "createRds",
+    "configureRds",
+    "connectDatabase",
+    "backupRds",
+    "restoreRds",
+    "failoverRds",
+    "createTable",
+    "putItem",
+    "getItem",
+    "createTargetGroup",
+    "configureTargetGroup",
+    "createAlb",
+    "createAsg",
+    "scaleAsg",
+    "setLoad",
+    "putDns",
+    "createDistribution",
+    "configureDistribution",
+    "requestService",
+    "advanceTime",
+    "inspectMetrics",
+    "inspectLogs",
+    "inspectAudit",
+    "createTopic",
+    "createAlarm",
+    "configureAlarm",
+    "createDashboard",
+    "reviewArchitecture",
+    "createFunction",
+    "invokeFunction",
+    "createSchedule",
+    "configureSchedule",
+    "ssmRun",
+    "patchFleet",
+    "deployStack",
+    "createRepository",
+    "pushImage",
+    "createCluster",
+    "registerTask",
+    "configureTask",
+    "createEcsService",
+    "updateEcsService",
+    "createDeployment",
+    "configureDeployment",
+    "inspectContainers",
+    "createOrganization",
+    "putScp",
+    "createKey",
+    "configureKey",
+    "encryptData",
+    "decryptData",
+    "replicateResource"
+  ],
+  "hints": [
+    {
+      "zh": "Mira：先检查目标涉及的资源、依赖、日志与网络路径。",
+      "ja": "Mira：対象のリソース、依存関係、ログと経路を確認。",
+      "en": "Mira: Inspect target resources, dependencies, diagnostics and network paths."
+    },
+    {
+      "zh": "快照保存当时的磁盘数据；恢复生成独立卷。对象版本化保护后续写入。",
+      "ja": "スナップショットは時点のデータ。復元は独立ボリュームを作成します。",
+      "en": "A snapshot captures point-in-time data. Restore creates an independent volume; versioning protects object writes."
+    },
+    {
+      "zh": "Mira：可用操作顺序：createSnapshot → restoreSnapshot → configureBucket → putObject",
+      "ja": "Mira：対応する操作順：createSnapshot → restoreSnapshot → configureBucket → putObject",
+      "en": "Mira: Supported operation sequence: createSnapshot → restoreSnapshot → configureBucket → putObject"
+    }
+  ],
+  "reference": [
+    {
+      "op": "createSnapshot",
+      "id": "snap-safe",
+      "args": {
+        "volume": "vol-data"
+      },
+      "policies": []
+    },
+    {
+      "op": "restoreSnapshot",
+      "id": "vol-restored",
+      "args": {
+        "snapshot": "snap-safe",
+        "az": "ap-northeast-1a"
+      },
+      "policies": []
+    },
+    {
+      "op": "configureBucket",
+      "id": "rescue",
+      "args": {
+        "versioning": "true"
+      },
+      "policies": []
+    },
+    {
+      "op": "putObject",
+      "id": "rescue",
+      "args": {
+        "key": "backup",
+        "content": "city-data"
+      },
+      "policies": []
+    }
+  ],
+  "xp": 250,
+  "coins": 50
+}

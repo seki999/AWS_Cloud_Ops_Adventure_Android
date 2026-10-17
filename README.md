@@ -2,11 +2,11 @@
 
 Native Kotlin + Jetpack Compose educational operations game. Entirely offline; no AWS account, SDK, credentials, backend, or `INTERNET` permission. This is an independent learning simulator, not an official AWS console. It creates no real resources and incurs no real AWS charges.
 
-## Current delivery: 0.1.0 vertical slice
+## Current delivery: 0.2.0
 
-12 state-driven playable missions, sequential unlocks, 60-entry versioned catalog (48 explicitly planned), Chinese/Japanese/English story and lessons, resource console, local CLI, draggable resource topology, chapter map, independent sandbox, hints, scoring, XP, coins, two obtainable MVP achievements, Room snapshots and DataStore language settings.
+60 state-driven playable missions in 10 chapters with sequential unlocks; service simulators for IAM, EC2/EBS/AMI, VPC networking, S3/EFS, RDS/DynamoDB, ALB/ASG/Route 53/CloudFront, CloudWatch/SNS/Logs/CloudTrail, Lambda/Scheduler/SSM/CloudFormation, ECR/ECS/EKS, Organizations/KMS; Chinese/Japanese/English story, lessons and hints; resource console with metric chart; local CLI (`aws`, `sim`, `kubectl` subsets); draggable topology; 10-district chapter map; sandbox; scoring, stars, XP, coins, ten achievements; Room snapshots with versioned migration; DataStore language settings.
 
-The implementation is deliberately a **simplified MVP**, not a complete implementation of every requirement in the original brief. See [ROADMAP](docs/ROADMAP.md) for specific gaps. In particular the full VPC network evaluator and chapters 3–10 are not implemented. The console uses a generic structured operation form; supported AWS CLI syntax is a documented subset.
+Content is still simplified in places — see [MISSIONS](docs/MISSIONS.md#known-simplifications) and [ROADMAP](docs/ROADMAP.md). The console uses a generic structured operation form; supported AWS CLI syntax is a documented subset. Executed results are in [VALIDATION](docs/VALIDATION.md).
 
 ## Build and install
 
@@ -44,7 +44,7 @@ CLI help is built in (`aws help`). An optional sandbox allows all supported oper
 
 ## Structure
 
-- `core`: immutable serializable models, IAM evaluator, command bus, mission validator, CLI parser, JVM regression tests.
+- `core`: immutable serializable models, IAM evaluator, command bus, service simulators, network evaluator, mission validator, CLI parser, save codec, JVM regression tests.
 - `app`: Compose UI / Navigation, Hilt ViewModel/repository, Room saves, DataStore, offline assets, instrumentation tests.
 - `schemas`: Draft 2020-12 mission schema.
 - `tools`: reproducible content generation and schema/reference validation.
